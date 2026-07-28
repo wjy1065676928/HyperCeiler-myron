@@ -41,10 +41,8 @@ import com.sevtinge.hyperceiler.common.utils.PrefsBridge;
 import com.sevtinge.hyperceiler.common.utils.ShellUtils;
 
 import java.io.BufferedReader;
-import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileReader;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.lang.ref.WeakReference;
 import java.util.Objects;
@@ -57,7 +55,7 @@ public class SunlightModeTile extends TileUtils {
 
     // 亮度文件路径
     private static final String BRIGHTNESS_FILE_PRIMARY = "/sys/class/mi_display/disp-DSI-0/brightness_clone";
-    private static final String BRIGHTNESS_FILE_SECONDARY = "/sys/class/backlight/panel0-backlight/brightness";
+    private static final String BRIGHTNESS_FILE_SECONDARY = "/sys/devices/platform/soc/9800000.qcom,mdss_mdp/backlight/panel0-backlight/brightness";
 
     // 系统设置键
     private static final String SETTING_SCREEN_BRIGHTNESS = "screen_brightness";
@@ -197,7 +195,7 @@ public class SunlightModeTile extends TileUtils {
         try {
             switch (mMode) {
                 case SYSTEM_SUNLIGHT -> toggleSystemSunlightMode(context);
-                case FORCE_MAX_BRIGHTNESS -> toggleForceBrightness(ctx, context, Integer.MAX_VALUE);
+                case FORCE_MAX_BRIGHTNESS -> toggleForceBrightness(ctx, context, 16383);
                 case CUSTOM_BRIGHTNESS_SHELL -> toggleForceBrightness(ctx, context, mCustomBrightness);
                 case SYSTEM_API_MAX_BRIGHTNESS -> toggleSystemApiBrightness(ctx, context);
             }
@@ -451,18 +449,8 @@ public class SunlightModeTile extends TileUtils {
      * 写入亮度值
      */
     private void writeBrightness(int brightness) {
-        if (mMode == Mode.CUSTOM_BRIGHTNESS_SHELL) {
-            ShellUtils.rootExecCmd("echo " + brightness + " > " + BRIGHTNESS_FILE_SECONDARY);
-            return;
-        }
-
         if (mBrightnessPath == null) return;
-
-        try (BufferedWriter writer = new BufferedWriter(new FileWriter(mBrightnessPath, false))) {
-            writer.write(String.valueOf(brightness));
-        } catch (IOException e) {
-            XposedLog.e(TAG, "Failed to write brightness to: " + mBrightnessPath, e);
-        }
+        ShellUtils.rootExecCmd("echo " + brightness + " > " + mBrightnessPath);
     }
 
     // ==================== 自动亮度处理 ====================
