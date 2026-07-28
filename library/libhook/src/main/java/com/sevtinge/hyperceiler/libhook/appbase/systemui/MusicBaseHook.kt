@@ -158,7 +158,7 @@ abstract class MusicBaseHook : BaseHook() {
                 }
             }
         }.onFailure {
-            XposedLog.e(TAG, lpparam.packageName, "registerLyricListener not found: ${it.message}")
+            XposedLog.w(TAG, lpparam.packageName, "registerLyricListener not found: ${it.message}")
         }
     }
 
