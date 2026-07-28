@@ -26,21 +26,17 @@ import android.provider.Settings
 import com.sevtinge.hyperceiler.common.log.XposedLog
 import com.sevtinge.hyperceiler.common.utils.PrefsBridge
 import com.sevtinge.hyperceiler.common.utils.ShellUtils
+import java.io.DataOutputStream
 import com.sevtinge.hyperceiler.libhook.appbase.systemui.TileConfig
 import com.sevtinge.hyperceiler.libhook.appbase.systemui.TileContext
 import com.sevtinge.hyperceiler.libhook.appbase.systemui.TileState
 import com.sevtinge.hyperceiler.libhook.appbase.systemui.TileUtils
-import com.sevtinge.hyperceiler.libhook.base.BaseHook
 import com.sevtinge.hyperceiler.libhook.utils.api.MathUtils
-import io.github.lingqiqi5211.ezhooktool.xposed.dsl.getStaticFloatField
-import io.github.lingqiqi5211.ezhooktool.xposed.dsl.getStaticIntField
 import io.github.lingqiqi5211.ezhooktool.core.callMethod
 import io.github.lingqiqi5211.ezhooktool.xposed.dsl.beforeHookMethod
 import io.github.lingqiqi5211.ezhooktool.xposed.dsl.hookAllConstructors
 import org.json.JSONException
 import org.json.JSONObject
-import java.io.File
-import java.io.IOException
 import kotlin.math.roundToInt
 
 /**
@@ -52,10 +48,10 @@ object NewFlashLight : TileUtils() {
 
     // 手电筒亮度控制文件路径
     private const val MTK = "/sys/class/flashlight_core/flashlight/torchbrightness"
-    private const val TORCH = "/sys/class/leds/led:torch_0/brightness"
+    private const val TORCH = "/sys/class/leds/yellow:flash-0/brightness"
     private const val OTHER = "/sys/class/leds/flashlight/brightness"
     private const val FLASH_SWITCH = "/sys/class/leds/led:switch_0/brightness"
-    private const val MAX_BRIGHTNESS = "/sys/class/leds/led:torch_0/max_brightness"
+    private const val MAX_BRIGHTNESS = "/sys/class/leds/yellow:flash-0/max_brightness"
 
     // Settings keys
     private const val SETTING_FLASH_ENABLED = "flash_light_enabled"
@@ -68,6 +64,8 @@ object NewFlashLight : TileUtils() {
     private var isListening: Boolean = false
     private var isHook: Boolean = false
     private var brightnessObserver: ContentObserver? = null
+    private var shellProcess: Process? = null
+    private var shellStdin: DataOutputStream? = null
 
     override fun onCreateTileConfig(): TileConfig {
         return TileConfig.Builder()
@@ -80,6 +78,9 @@ object NewFlashLight : TileUtils() {
         // 读取配置
         mode = PrefsBridge.getStringAsInt("security_flash_light_switch", 0)
 
+        // 初始化持久 su shell
+        initShell()
+
         // 设置文件权限
         setPermission(MTK)
         setPermission(TORCH)
@@ -90,8 +91,8 @@ object NewFlashLight : TileUtils() {
         hookBrightnessControl()
         hookBrightnessUtils()
 
-        val restoredContext = BaseHook.getHotReloadRuntimeState(STATE_CONTEXT, Context::class.java)
-        val restoredController = BaseHook.getHotReloadRuntimeState(STATE_CONTROLLER, Any::class.java)
+        val restoredContext = getHotReloadRuntimeState(STATE_CONTEXT, Context::class.java)
+        val restoredController = getHotReloadRuntimeState(STATE_CONTROLLER, Any::class.java)
         if (restoredContext != null && restoredController != null) {
             setupBrightnessListener(restoredContext, restoredController)
         }
@@ -105,8 +106,10 @@ object NewFlashLight : TileUtils() {
         // 同步手电筒状态到 Settings
         if (isEnabled) {
             setFlashLightEnabled(context, 1)
+            if (shellStdin == null) initShell()
         } else {
             setFlashLightEnabled(context, 0)
+            destroyShell()
         }
 
         // 返回 null 使用原有状态逻辑
@@ -170,9 +173,9 @@ object NewFlashLight : TileUtils() {
             brightnessObserver!!
         )
         isListening = true
-        BaseHook.registerContentObserverHotReloadCleanup(context.contentResolver, brightnessObserver!!)
-        BaseHook.putHotReloadRuntimeState(STATE_CONTEXT, context)
-        BaseHook.putHotReloadRuntimeState(STATE_CONTROLLER, controller)
+        registerContentObserverHotReloadCleanup(context.contentResolver, brightnessObserver!!)
+        putHotReloadRuntimeState(STATE_CONTEXT, context)
+        putHotReloadRuntimeState(STATE_CONTROLLER, controller)
         XposedLog.i(TAG, "Brightness listener set up successfully")
     }
 
@@ -365,17 +368,12 @@ object NewFlashLight : TileUtils() {
      * 读取最大亮度值
      */
     private fun getMaxBrightness(): Int {
-        val file = File(MAX_BRIGHTNESS)
-        if (!file.exists()) {
-            XposedLog.e(TAG, "Max brightness file not found: $MAX_BRIGHTNESS")
-            return -1
-        }
-
         return try {
-            file.readText().trim().toInt()
-        } catch (e: Exception) {
-            XposedLog.e(TAG, "Failed to read max brightness", e)
-            -1
+            val result = ShellUtils.rootExecCmd("cat $MAX_BRIGHTNESS")
+            result.trim().toInt()
+        } catch (_: Exception) {
+            XposedLog.w(TAG, "Max brightness file not found: $MAX_BRIGHTNESS")
+            255
         }
     }
 
@@ -383,31 +381,19 @@ object NewFlashLight : TileUtils() {
      * 写入亮度值到文件
      */
     private fun writeFile(flash: Int) {
-        val brightMTK = File(MTK).exists()
-        val brightTorch = File(TORCH).exists()
-        val brightOther = File(OTHER).exists()
-
         when (mode) {
             0, 1 -> {
-                if (brightMTK) write(MTK, flash)
-                if (brightTorch) write(TORCH, flash)
-                if (brightOther) write(OTHER, flash)
+                write(MTK, flash)
+                write(TORCH, flash)
+                write(OTHER, flash)
             }
             2 -> {
-                if (brightMTK) zero(MTK, flash)
-                if (brightOther) {
-                    zero(OTHER, flash)
-                } else if (brightTorch) {
-                    zero(TORCH, flash)
-                }
+                zero(MTK, flash)
+                zero(TORCH, flash)
             }
             3 -> {
-                if (brightMTK) flashSwitch(MTK, flash)
-                if (brightOther) {
-                    flashSwitch(OTHER, flash)
-                } else if (brightTorch) {
-                    flashSwitch(TORCH, flash)
-                }
+                flashSwitch(MTK, flash)
+                flashSwitch(TORCH, flash)
             }
         }
     }
@@ -423,11 +409,46 @@ object NewFlashLight : TileUtils() {
         write(FLASH_SWITCH, 0)
     }
 
-    private fun write(path: String, value: Int) {
+    private fun initShell() {
+        if (shellStdin != null) return  // 已有活跃 shell
         try {
-            File(path).writeText(value.toString())
-        } catch (e: IOException) {
-            XposedLog.e(TAG, "Failed to write $path", e)
+            val process = Runtime.getRuntime().exec("su")
+            val stdin = DataOutputStream(process.outputStream)
+            shellProcess = process
+            shellStdin = stdin
+            // 注册热重载清理
+            registerHotReloadCleanup(::destroyShell)
+        } catch (e: Exception) {
+            XposedLog.e(TAG, "Failed to init persistent shell", e)
+        }
+    }
+
+    private fun destroyShell() {
+        try {
+            shellStdin?.let { stdin ->
+                stdin.writeBytes("exit\n")
+                stdin.flush()
+            }
+            shellProcess?.destroy()
+        } catch (_: Exception) {}
+        shellProcess = null
+        shellStdin = null
+    }
+
+    private fun write(path: String, value: Int) {
+        val stdin = shellStdin
+        if (stdin == null) {
+            // 降级方案：每次新建进程
+            ShellUtils.rootExecCmd("echo $value > $path")
+            return
+        }
+        try {
+            synchronized(stdin) {
+                stdin.writeBytes("echo $value > $path\n")
+                stdin.flush()
+            }
+        } catch (e: Exception) {
+            XposedLog.e(TAG, "Failed to write via shell", e)
         }
     }
 
@@ -437,7 +458,7 @@ object NewFlashLight : TileUtils() {
     private fun setPermission(path: String) {
         try {
             val checkCommand = "test -e $path && echo exists || echo not_found"
-            val result = ShellUtils.execCommand(checkCommand, false).toString()
+            val result = ShellUtils.execCommand(checkCommand, true).toString()
 
             if (result.contains("not_found")) {
                 XposedLog.e(TAG, "Path does not exist: $path")
@@ -445,12 +466,10 @@ object NewFlashLight : TileUtils() {
             }
 
             val chmodCommand = "chmod 777 $path"
-            val chmodResult = ShellUtils.execCommand(chmodCommand, false).toString()
+            val chmodResult = ShellUtils.execCommand(chmodCommand, true).toString()
 
-            if (chmodResult.isEmpty()) {
-                XposedLog.d(TAG, "Successfully set permissions for $path")
-            } else {
-                XposedLog.e(TAG, "Failed to set permissions for $path: $chmodResult")
+            if (chmodResult.isNotEmpty() && chmodResult != "null") {
+                XposedLog.w(TAG, "Failed to set permissions for $path: $chmodResult")
             }
         } catch (e: Exception) {
             XposedLog.e(TAG, "Exception setting permissions for $path", e)
@@ -463,7 +482,7 @@ object NewFlashLight : TileUtils() {
     private fun isFlashLightEnabled(context: Context): Boolean {
         return try {
             Settings.System.getInt(context.contentResolver, SETTING_FLASH_ENABLED) == 1
-        } catch (e: Settings.SettingNotFoundException) {
+        } catch (_: Settings.SettingNotFoundException) {
             setFlashLightEnabled(context, 0)
             false
         }
