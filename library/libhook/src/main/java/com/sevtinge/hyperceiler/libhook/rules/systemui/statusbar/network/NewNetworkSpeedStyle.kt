@@ -115,9 +115,9 @@ object NewNetworkSpeedStyle : BaseHook() {
                         }
                     }
                     meter.addOnLayoutChangeListener(layoutListener)
-                    BaseHook.registerHotReloadCleanup {
-                        meter.removeOnLayoutChangeListener(layoutListener)
-                    }
+                registerHotReloadCleanup {
+                    meter.removeOnLayoutChangeListener(layoutListener)
+                }
             }
 
     }

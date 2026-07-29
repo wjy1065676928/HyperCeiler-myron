@@ -109,7 +109,7 @@ object HideFakeStatusBar : MusicBaseHook() {
             Context.RECEIVER_EXPORTED
         )
         clockReceiverRegistered = true
-        BaseHook.registerReceiverHotReloadCleanup(receiverContext, receiver)
+        registerReceiverHotReloadCleanup(receiverContext, receiver)
     }
 
     override fun onSuperLyric(packageName: String?, data: SuperLyricData) {

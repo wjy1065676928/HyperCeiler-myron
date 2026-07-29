@@ -105,7 +105,7 @@ object CustomCarrierText : BaseHook() {
 
                 if (!viewGroup.isVisible) {
                     // super.onMeasure
-                    com.sevtinge.hyperceiler.libhook.base.BaseHook.invokeSuperMethod(
+                    invokeSuperMethod(
                         "onMeasure", viewGroup,
                         widthMeasureSpec,
                         heightMeasureSpec
@@ -130,11 +130,11 @@ object CustomCarrierText : BaseHook() {
                 }
 
                 // super.onMeasure
-                com.sevtinge.hyperceiler.libhook.base.BaseHook.invokeSuperMethod(
-                    "onMeasure", viewGroup,
-                    View.MeasureSpec.makeMeasureSpec(availableWidth, View.MeasureSpec.EXACTLY),
-                    heightMeasureSpec
-                )
+            invokeSuperMethod(
+                "onMeasure", viewGroup,
+                View.MeasureSpec.makeMeasureSpec(availableWidth, View.MeasureSpec.EXACTLY),
+                heightMeasureSpec
+            )
                 viewGroup.callMethod(
                     "setMeasuredDimension",
                     availableWidth,

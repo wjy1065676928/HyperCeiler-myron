@@ -16,10 +16,10 @@
 
  * Copyright (C) 2023-2026 HyperCeiler Contributions
  */
-/**
- * 优化剪贴板粘贴提示 Toast
- *
- * @author LuoYunXi0407
+/*
+  优化剪贴板粘贴提示 Toast
+
+  @author LuoYunXi0407
  */
 package com.sevtinge.hyperceiler.libhook.rules.lbe;
 
@@ -47,7 +47,7 @@ public class PasteToast extends BaseHook {
 
                 @Override
                 public void after(HookParam param)  {
-                    if(param == null) return;;
+                    if(param == null) return;
                     Object[] args = param.getArgs();
                     int type = (int) args[1];
                     if (type != 1) return;
@@ -63,9 +63,8 @@ public class PasteToast extends BaseHook {
                         .getIdentifier("closeButton", "id", "android");
 
                     View closeBtn = view.findViewById(closeId);
-                    if (!(closeBtn instanceof TextView)) return;
+                    if (!(closeBtn instanceof TextView btn)) return;
 
-                    TextView btn = (TextView) closeBtn;
                     String btnStr = PrefsBridge.getString("prefs_key_lbe_paste_toast_custom_close_button_text_custom", "");
                     if(!Objects.equals(btnStr, ""))
                     {

@@ -104,7 +104,7 @@ object GMSDozeFixFramework : BaseHook() {
                 try {
                     val calleeUid = chain.getArg(2) as? Int
                     if (calleeUid != null) {
-                        val resolved = com.sevtinge.hyperceiler.libhook.base.BaseHook.invokeOriginalMethod(
+                        val resolved = invokeOriginalMethod(
                             getPackageNameFromUidMethod, chain.thisObject, calleeUid
                         ) as? String
                         if (resolved != null) {
@@ -348,7 +348,7 @@ object GMSDozeFixFramework : BaseHook() {
             chain(broadcastMethod) { chain ->
                 val intent = chain.getArg(intentArgIndex) as? Intent
                 if (intent != null && ACTION_REMOTE_INTENT == intent.action) {
-                    val app = com.sevtinge.hyperceiler.libhook.base.BaseHook.invokeOriginalMethod(
+                    val app = invokeOriginalMethod(
                         getRecordMethod, chain.thisObject, chain.getArg(0)
                     )
                     if (app != null) {

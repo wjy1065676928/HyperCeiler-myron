@@ -26,7 +26,6 @@ import android.provider.Settings
 import com.sevtinge.hyperceiler.common.log.XposedLog
 import com.sevtinge.hyperceiler.common.utils.PrefsBridge
 import com.sevtinge.hyperceiler.common.utils.ShellUtils
-import java.io.DataOutputStream
 import com.sevtinge.hyperceiler.libhook.appbase.systemui.TileConfig
 import com.sevtinge.hyperceiler.libhook.appbase.systemui.TileContext
 import com.sevtinge.hyperceiler.libhook.appbase.systemui.TileState
@@ -38,6 +37,7 @@ import io.github.lingqiqi5211.ezhooktool.xposed.dsl.hookAllConstructors
 import org.json.JSONException
 import org.json.JSONObject
 import kotlin.math.roundToInt
+import java.util.concurrent.Executors
 
 /**
  * 手电筒亮度调节磁贴
@@ -47,9 +47,7 @@ import kotlin.math.roundToInt
 object NewFlashLight : TileUtils() {
 
     // 手电筒亮度控制文件路径
-    private const val MTK = "/sys/class/flashlight_core/flashlight/torchbrightness"
     private const val TORCH = "/sys/class/leds/yellow:flash-0/brightness"
-    private const val OTHER = "/sys/class/leds/flashlight/brightness"
     private const val FLASH_SWITCH = "/sys/class/leds/led:switch_0/brightness"
     private const val MAX_BRIGHTNESS = "/sys/class/leds/yellow:flash-0/max_brightness"
 
@@ -64,8 +62,7 @@ object NewFlashLight : TileUtils() {
     private var isListening: Boolean = false
     private var isHook: Boolean = false
     private var brightnessObserver: ContentObserver? = null
-    private var shellProcess: Process? = null
-    private var shellStdin: DataOutputStream? = null
+    private val writeExecutor = Executors.newSingleThreadExecutor()
 
     override fun onCreateTileConfig(): TileConfig {
         return TileConfig.Builder()
@@ -78,13 +75,8 @@ object NewFlashLight : TileUtils() {
         // 读取配置
         mode = PrefsBridge.getStringAsInt("security_flash_light_switch", 0)
 
-        // 初始化持久 su shell
-        initShell()
-
         // 设置文件权限
-        setPermission(MTK)
         setPermission(TORCH)
-        setPermission(OTHER)
 
         // Hook 相关方法
         initBrightnessControllerHook()
@@ -106,10 +98,8 @@ object NewFlashLight : TileUtils() {
         // 同步手电筒状态到 Settings
         if (isEnabled) {
             setFlashLightEnabled(context, 1)
-            if (shellStdin == null) initShell()
         } else {
             setFlashLightEnabled(context, 0)
-            destroyShell()
         }
 
         // 返回 null 使用原有状态逻辑
@@ -383,16 +373,12 @@ object NewFlashLight : TileUtils() {
     private fun writeFile(flash: Int) {
         when (mode) {
             0, 1 -> {
-                write(MTK, flash)
                 write(TORCH, flash)
-                write(OTHER, flash)
             }
             2 -> {
-                zero(MTK, flash)
                 zero(TORCH, flash)
             }
             3 -> {
-                flashSwitch(MTK, flash)
                 flashSwitch(TORCH, flash)
             }
         }
@@ -409,46 +395,13 @@ object NewFlashLight : TileUtils() {
         write(FLASH_SWITCH, 0)
     }
 
-    private fun initShell() {
-        if (shellStdin != null) return  // 已有活跃 shell
-        try {
-            val process = Runtime.getRuntime().exec("su")
-            val stdin = DataOutputStream(process.outputStream)
-            shellProcess = process
-            shellStdin = stdin
-            // 注册热重载清理
-            registerHotReloadCleanup(::destroyShell)
-        } catch (e: Exception) {
-            XposedLog.e(TAG, "Failed to init persistent shell", e)
-        }
-    }
-
-    private fun destroyShell() {
-        try {
-            shellStdin?.let { stdin ->
-                stdin.writeBytes("exit\n")
-                stdin.flush()
-            }
-            shellProcess?.destroy()
-        } catch (_: Exception) {}
-        shellProcess = null
-        shellStdin = null
-    }
-
     private fun write(path: String, value: Int) {
-        val stdin = shellStdin
-        if (stdin == null) {
-            // 降级方案：每次新建进程
-            ShellUtils.rootExecCmd("echo $value > $path")
-            return
-        }
-        try {
-            synchronized(stdin) {
-                stdin.writeBytes("echo $value > $path\n")
-                stdin.flush()
-            }
-        } catch (e: Exception) {
-            XposedLog.e(TAG, "Failed to write via shell", e)
+        writeExecutor.submit {
+            try {
+                ProcessBuilder("su", "-c", "echo $value > $path")
+                    .redirectErrorStream(true)
+                    .start()
+            } catch (_: Exception) {}
         }
     }
 

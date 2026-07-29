@@ -336,75 +336,65 @@ public class XposedInitEntry extends XposedModule {
     ) {
     }
 
-    private static final class RestoredPackageReadyParam implements PackageReadyParam {
-        private final String packageName;
-        private final ClassLoader classLoader;
-        @Nullable
-        private final ApplicationInfo applicationInfo;
-        private final boolean isFirstPackage;
-
-        RestoredPackageReadyParam(@NonNull String packageName, @NonNull ClassLoader classLoader,
-                                  @Nullable ApplicationInfo applicationInfo, boolean isFirstPackage) {
-            this.packageName = packageName;
-            this.classLoader = classLoader;
-            this.applicationInfo = applicationInfo;
-            this.isFirstPackage = isFirstPackage;
-        }
-
-        @NonNull
-        @Override
-        public ClassLoader getClassLoader() {
-            return classLoader;
-        }
-
-        @NonNull
-        @Override
-        public AppComponentFactory getAppComponentFactory() {
-            throw new UnsupportedOperationException(
-                "AppComponentFactory is unavailable in hot reload context");
-        }
-
-        @NonNull
-        @Override
-        public String getPackageName() {
-            return packageName;
-        }
-
-        @NonNull
-        @Override
-        public ApplicationInfo getApplicationInfo() {
-            if (applicationInfo == null) {
-                throw new UnsupportedOperationException(
-                    "ApplicationInfo unavailable in hot reload context (system_server or missing snapshot)");
+    private record RestoredPackageReadyParam(String packageName, ClassLoader classLoader,
+                                             @Nullable ApplicationInfo applicationInfo,
+                                             boolean isFirstPackage) implements PackageReadyParam {
+            private RestoredPackageReadyParam(@NonNull String packageName, @NonNull ClassLoader classLoader,
+                                              @Nullable ApplicationInfo applicationInfo, boolean isFirstPackage) {
+                this.packageName = packageName;
+                this.classLoader = classLoader;
+                this.applicationInfo = applicationInfo;
+                this.isFirstPackage = isFirstPackage;
             }
-            return applicationInfo;
+
+            @NonNull
+            @Override
+            public ClassLoader getClassLoader() {
+                return classLoader;
+            }
+
+            @NonNull
+            @Override
+            public AppComponentFactory getAppComponentFactory() {
+                throw new UnsupportedOperationException(
+                    "AppComponentFactory is unavailable in hot reload context");
+            }
+
+            @NonNull
+            @Override
+            public String getPackageName() {
+                return packageName;
+            }
+
+            @NonNull
+            @Override
+            public ApplicationInfo getApplicationInfo() {
+                if (applicationInfo == null) {
+                    throw new UnsupportedOperationException(
+                        "ApplicationInfo unavailable in hot reload context (system_server or missing snapshot)");
+                }
+                return applicationInfo;
+            }
+
+            @NonNull
+            @Override
+            public ClassLoader getDefaultClassLoader() {
+                return classLoader;
+            }
         }
 
-        @Override
-        public boolean isFirstPackage() {
-            return isFirstPackage;
-        }
+    private record RestoredSystemServerParam(
+        ClassLoader classLoader) implements SystemServerStartingParam {
+            private RestoredSystemServerParam(@NonNull ClassLoader classLoader) {
+                this.classLoader = classLoader;
+            }
 
-        @NonNull
-        @Override
-        public ClassLoader getDefaultClassLoader() {
-            return classLoader;
+            @NonNull
+            @Override
+            public ClassLoader getClassLoader() {
+                return classLoader;
+            }
         }
-    }
-
-    private static final class RestoredSystemServerParam implements SystemServerStartingParam {
-        private final ClassLoader classLoader;
-
-        RestoredSystemServerParam(@NonNull ClassLoader classLoader) {
-            this.classLoader = classLoader;
-        }
-
-        @NonNull
-        @Override
-        public ClassLoader getClassLoader() {
-            return classLoader;
-        }
-    }
 
     protected void invokeInit(PackageReadyParam lpparam) {
         invokeInitInternal(lpparam.getPackageName(), module -> module.onLoad(lpparam));

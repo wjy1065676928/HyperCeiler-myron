@@ -134,8 +134,9 @@ object VersionCodeNew : BaseHook() {
             .filterByParamTypes(JSONObject::class.java)
             .first().createHook {
                 after { param ->
-                    XposedLog.d(TAG, getPackageName(), "111 ")
-                    XposedLog.d(TAG, getPackageName(), "111 " + param.thisObject.getObjectField("curVerCode").toString())
+                    XposedLog.d(TAG, packageName, "111 ")
+                    XposedLog.d(TAG,
+                        packageName, "111 " + param.thisObject.getObjectField("curVerCode").toString())
                 }
             }
 

@@ -331,11 +331,11 @@ object MoreBatteryInfoNew : BaseHook() {
             findClassIfExists("miuix.preference.TextPreference") ?: return null
 
         val firstAttempt = runCatching {
-            com.sevtinge.hyperceiler.libhook.base.BaseHook.newInstance(textPreferenceClass, context)
+            newInstance(textPreferenceClass, context)
         }
         val textPreference: Any? = firstAttempt.getOrNull() ?: run {
             runCatching {
-                com.sevtinge.hyperceiler.libhook.base.BaseHook.newInstance(textPreferenceClass, context, null)
+                newInstance(textPreferenceClass, context, null)
             }.getOrNull()
         }
 

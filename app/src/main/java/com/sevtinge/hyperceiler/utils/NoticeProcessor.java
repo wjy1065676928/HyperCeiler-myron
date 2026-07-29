@@ -233,8 +233,7 @@ public class NoticeProcessor {
     public static boolean isNeedShowTosDialog(NoticeProcessor.NoticeResult result){
         if (result == null) return false;
         if (result.protocolVersion == -1 || result.privacyVersion == -1) return false;
-        if (PrefsBridge.getInt("prefs_key_protocol_version", -1) >= result.protocolVersion && PrefsBridge.getInt("prefs_key_privacy_version", -1) >= result.privacyVersion) return false;
-        return true;
+        return PrefsBridge.getInt("prefs_key_protocol_version", -1) < result.protocolVersion || PrefsBridge.getInt("prefs_key_privacy_version", -1) < result.privacyVersion;
     }
 
     private static boolean matchStringList(List<String> list, String value) {

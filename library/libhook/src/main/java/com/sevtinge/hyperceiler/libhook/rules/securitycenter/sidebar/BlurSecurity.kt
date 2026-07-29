@@ -184,7 +184,7 @@ object BlurSecurity : BaseHook() {
             "com.miui.gamebooster.windowmanager.newbox.NewToolBoxTopView"
         ) ?: return
         // 游戏工具箱
-        com.sevtinge.hyperceiler.libhook.base.BaseHook.hookAllConstructors(newToolBoxTopViewClass, object : IMethodHook {
+        hookAllConstructors(newToolBoxTopViewClass, object : IMethodHook {
             override fun after(param: HookParam) {
                 val view = param.thisObject as View
                 val listener = object : View.OnAttachStateChangeListener {
@@ -293,7 +293,7 @@ object BlurSecurity : BaseHook() {
             val auditionViewClass =
                 findClassIfExists("com.miui.gamebooster.customview.AuditionView") ?: return
 
-            com.sevtinge.hyperceiler.libhook.base.BaseHook.hookAllMethods(
+            hookAllMethods(
                 detailSettingsLayoutClass,
                 "setFunctionType",
                 object : IMethodHook {
@@ -307,7 +307,7 @@ object BlurSecurity : BaseHook() {
                         val listViewAdapterClassName = listView.adapter.javaClass.name
                         val listViewAdapterInnerClass =
                             findClassIfExists($$"$$listViewAdapterClassName$a") ?: return
-                        com.sevtinge.hyperceiler.libhook.base.BaseHook.hookAllMethods(
+                        hookAllMethods(
                             listViewAdapterInnerClass,
                             "a",
                             object : IMethodHook {

@@ -141,7 +141,7 @@ abstract class MusicBaseHook : BaseHook() {
     private var lyricReceiverRegistered = false
 
     init {
-        com.sevtinge.hyperceiler.libhook.base.BaseHook.runOnApplicationAttach {
+        runOnApplicationAttach {
             registerLyricReceiver()
         }
     }
@@ -151,7 +151,7 @@ abstract class MusicBaseHook : BaseHook() {
         runCatching {
             SuperLyricHelper.registerReceiver(receiver)
             lyricReceiverRegistered = true
-            BaseHook.registerHotReloadCleanup {
+            registerHotReloadCleanup {
                 if (lyricReceiverRegistered) {
                     SuperLyricHelper.unregisterReceiver(receiver)
                     lyricReceiverRegistered = false

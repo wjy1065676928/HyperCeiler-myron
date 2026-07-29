@@ -310,7 +310,7 @@ object CustomBackground : BaseHook() {
                 }
                 parent.addView(it, index)
                 parent.removeView(mediaBgView)
-                val constraintSet = com.sevtinge.hyperceiler.libhook.base.BaseHook.newInstance(clzConstraintSetClass!!)
+                val constraintSet = newInstance(clzConstraintSetClass!!)
                 clone.invoke(constraintSet, parent)
                 connect.invoke(constraintSet, mediaBgId, ConstraintSet.LEFT, ConstraintSet.PARENT_ID, ConstraintSet.LEFT)
                 connect.invoke(constraintSet, mediaBgId, ConstraintSet.TOP, ConstraintSet.PARENT_ID, ConstraintSet.TOP)

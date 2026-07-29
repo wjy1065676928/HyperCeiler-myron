@@ -222,14 +222,14 @@ object FocusNotifLyric : MusicBaseHook() {
                 // 移除回调,防止滚动结束之后重置滚动位置。
                 // 重载时会用新 generation 的 callback 覆盖它，避免宿主 Marquee 持有旧 classloader。
                 installNoopRestartCallback(textView)
-                BaseHook.putHotReloadRuntimeState(STATE_SCROLLING_TEXT_VIEW, textView)
+                putHotReloadRuntimeState(STATE_SCROLLING_TEXT_VIEW, textView)
                 // 滚动完成后清理状态
                 val finishScroll = Runnable {
-                    com.sevtinge.hyperceiler.libhook.base.BaseHook.setAdditionalInstanceField(textView, "is_scrolling", 1)
+                    setAdditionalInstanceField(textView, "is_scrolling", 1)
                     runnablePool.remove(key) //移除任务引用
                 }
                 textView.postDelayed(finishScroll, computeScrollDuration(lineWidth, width, speed)) // 根据速度和距离计算时长
-                BaseHook.registerHotReloadCleanup { textView.removeCallbacks(finishScroll) }
+                registerHotReloadCleanup { textView.removeCallbacks(finishScroll) }
             }
         }.onFailure {
             XposedLog.e(TAG, lpparam.packageName, "error: ${it.message}")

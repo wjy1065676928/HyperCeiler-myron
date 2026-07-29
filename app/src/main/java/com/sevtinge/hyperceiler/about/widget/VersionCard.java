@@ -151,11 +151,10 @@ public class VersionCard extends FrameLayout implements View.OnClickListener {
 
     private void showEmojiBurst(View anchor, String emoji) {
         Context context = anchor.getContext();
-        if (!(context instanceof Activity)) {
+        if (!(context instanceof Activity activity)) {
             return;
         }
 
-        Activity activity = (Activity) context;
         FrameLayout decorView = (FrameLayout) activity.getWindow().getDecorView();
 
         TextView tv = new TextView(context);
@@ -285,7 +284,7 @@ public class VersionCard extends FrameLayout implements View.OnClickListener {
     private void setEgg() {
         mIconImageView.setOnClickListener(v -> {
             if (isAprilFoolsThemeView) {
-                showEmojiBurst((ImageView) v, randomEmoji());
+                showEmojiBurst(v, randomEmoji());
             } else {
                 if (Math.random() >= 0.97) {
                     String[] messages = getResources().getStringArray(R.array.logo_click_egg_messages);

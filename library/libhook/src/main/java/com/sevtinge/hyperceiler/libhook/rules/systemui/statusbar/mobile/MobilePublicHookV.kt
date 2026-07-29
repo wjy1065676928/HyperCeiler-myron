@@ -136,8 +136,8 @@ class MobilePublicHookV : BaseHook() {
         if (flow.javaClass.classLoader === javaClass.classLoader) {
             return
         }
-        BaseHook.putHotReloadRuntimeState("$STATE_FLOW_PREFIX$subId", flow)
-        BaseHook.putHotReloadRuntimeState(
+        putHotReloadRuntimeState("$STATE_FLOW_PREFIX$subId", flow)
+        putHotReloadRuntimeState(
             STATE_SUB_IDS,
             visibilityFlows.keys.sorted().joinToString(",")
         )
@@ -148,12 +148,12 @@ class MobilePublicHookV : BaseHook() {
         if (signalShowMode < 1 && !(isEnableDouble && !(card1 || card2))) {
             return
         }
-        val savedIds = BaseHook.getHotReloadRuntimeState(STATE_SUB_IDS, String::class.java)
+        val savedIds = getHotReloadRuntimeState(STATE_SUB_IDS, String::class.java)
             ?.split(',')
             ?.mapNotNull { it.toIntOrNull() }
             .orEmpty()
         savedIds.forEach { subId ->
-            val flow = BaseHook.getHotReloadRuntimeState("$STATE_FLOW_PREFIX$subId", Any::class.java)
+            val flow = getHotReloadRuntimeState("$STATE_FLOW_PREFIX$subId", Any::class.java)
                 ?: return@forEach
             if (flow.javaClass.classLoader !== javaClass.classLoader) {
                 visibilityFlows[subId] = flow
@@ -162,7 +162,7 @@ class MobilePublicHookV : BaseHook() {
         if (visibilityFlows.isEmpty()) {
             return
         }
-        BaseHook.getHotReloadRuntimeState(STATE_CONTEXT, Context::class.java)?.let(::registerReceiver)
+        getHotReloadRuntimeState(STATE_CONTEXT, Context::class.java)?.let(::registerReceiver)
         refreshAllVisibility()
     }
 
@@ -305,7 +305,7 @@ class MobilePublicHookV : BaseHook() {
             }
         }
         context.registerReceiver(receiver, filter, Context.RECEIVER_EXPORTED)
-        BaseHook.registerReceiverHotReloadCleanup(context, receiver)
+        registerReceiverHotReloadCleanup(context, receiver)
 
         val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
         val callback = object : ConnectivityManager.NetworkCallback() {
@@ -321,9 +321,9 @@ class MobilePublicHookV : BaseHook() {
             }
         }
         cm.registerDefaultNetworkCallback(callback)
-        BaseHook.registerNetworkCallbackHotReloadCleanup(cm, callback)
+        registerNetworkCallbackHotReloadCleanup(cm, callback)
         broadcastRegistered = true
-        BaseHook.putHotReloadRuntimeState(STATE_CONTEXT, context)
+        putHotReloadRuntimeState(STATE_CONTEXT, context)
     }
 
     private fun updateIconState(param: HookParam, fieldName: String, key: String) {

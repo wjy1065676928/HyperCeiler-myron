@@ -135,7 +135,7 @@ object MobileTypeSingle2Hook : BaseHook() {
     private val refreshBoundViewsRunnable = Runnable { refreshBoundViewsNow() }
 
     override fun init() {
-        BaseHook.registerHandlerHotReloadCleanup(mainHandler)
+        registerHandlerHotReloadCleanup(mainHandler)
         if (isEnableDouble) {
             getHotReloadRuntimeState(DATA_SIM_CONTEXT_KEY, Context::class.java)
                 ?.let(::registerDataSimBroadcast)
@@ -505,8 +505,8 @@ object MobileTypeSingle2Hook : BaseHook() {
         }
         context.registerReceiver(receiver, filter, Context.RECEIVER_EXPORTED)
         broadcastRegistered = true
-        BaseHook.registerReceiverHotReloadCleanup(context, receiver)
-        BaseHook.putHotReloadRuntimeState(DATA_SIM_CONTEXT_KEY, context)
+        registerReceiverHotReloadCleanup(context, receiver)
+        putHotReloadRuntimeState(DATA_SIM_CONTEXT_KEY, context)
     }
 
     private fun syncDataSimProxiesNow() {

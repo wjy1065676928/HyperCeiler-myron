@@ -243,8 +243,7 @@ public class BusinessHallAdBlock extends BaseHook {
             Field f = findFirstFieldByExactType(adapter.getClass(), ArrayList.class);
             f.setAccessible(true);
             Object value = f.get(adapter);
-            if (value instanceof ArrayList) {
-                ArrayList<?> list = (ArrayList<?>) value;
+            if (value instanceof ArrayList<?> list) {
                 if (!list.isEmpty() && list.get(0) instanceof Integer) {
                     return (ArrayList<Integer>) list;
                 }
@@ -339,8 +338,7 @@ public class BusinessHallAdBlock extends BaseHook {
     }
 
     private void fixSimTabTexts(Object viewObj) {
-        if (!(viewObj instanceof View)) return;
-        View view = (View) viewObj;
+        if (!(viewObj instanceof View view)) return;
 
         // 首次调用时 resolve 资源 ID，后续复用
         if (!layer4Resolved) {

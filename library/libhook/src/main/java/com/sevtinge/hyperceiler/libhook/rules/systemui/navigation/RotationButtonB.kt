@@ -110,9 +110,9 @@ object RotationButtonB : BaseHook() {
             Settings.System.getUriFor("rotation_button_data"), false, contentObserver
         )
         isListen = true
-        BaseHook.registerContentObserverHotReloadCleanup(context.contentResolver, contentObserver)
-        BaseHook.putHotReloadRuntimeState(STATE_NAVIGATION_BAR, navigationBar)
-        BaseHook.putHotReloadRuntimeState(STATE_CONTEXT, context)
+        registerContentObserverHotReloadCleanup(context.contentResolver, contentObserver)
+        putHotReloadRuntimeState(STATE_NAVIGATION_BAR, navigationBar)
+        putHotReloadRuntimeState(STATE_CONTEXT, context)
     }
 
     fun getScreenOrientation(context: Context): Int {

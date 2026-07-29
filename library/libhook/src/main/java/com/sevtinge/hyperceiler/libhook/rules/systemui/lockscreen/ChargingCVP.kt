@@ -64,7 +64,7 @@ object ChargingCVP : BaseHook() {
             findClass("com.android.systemui.statusbar.KeyguardIndicationController")
 
         if (showSpacingValue) {
-            BaseHook.getHotReloadRuntimeState(STATE_TEXT_VIEW, TextView::class.java)
+            getHotReloadRuntimeState(STATE_TEXT_VIEW, TextView::class.java)
                 ?.let { setShowSpacing(clazzDependency, clazzKeyguardIndicationController, it) }
         }
 
@@ -194,11 +194,11 @@ object ChargingCVP : BaseHook() {
         context.registerReceiver(
             screenOnOffReceiver, filter, Context.RECEIVER_EXPORTED
         )
-        BaseHook.registerReceiverHotReloadCleanup(context, screenOnOffReceiver)
-        BaseHook.registerHotReloadCleanup {
+        registerReceiverHotReloadCleanup(context, screenOnOffReceiver)
+        registerHotReloadCleanup {
             screenOnOffReceiver.handler.removeCallbacks(screenOnOffReceiver.runnable)
         }
-        BaseHook.putHotReloadRuntimeState(STATE_TEXT_VIEW, textView)
+        putHotReloadRuntimeState(STATE_TEXT_VIEW, textView)
     }
 
     private fun getTemp(): String {

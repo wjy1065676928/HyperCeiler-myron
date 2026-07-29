@@ -348,7 +348,7 @@ object AmbientLight : BaseHook() {
         }
 
         runCatching {
-            val cs = com.sevtinge.hyperceiler.libhook.base.BaseHook.newInstance(clzConstraintSetClass!!)
+            val cs = newInstance(clzConstraintSetClass!!)
             clone.invoke(cs, parent)
             connect.invoke(cs, mediaBgViewId, ConstraintSet.LEFT, ConstraintSet.PARENT_ID, ConstraintSet.LEFT)
             connect.invoke(cs, mediaBgViewId, ConstraintSet.TOP, ConstraintSet.PARENT_ID, ConstraintSet.TOP)

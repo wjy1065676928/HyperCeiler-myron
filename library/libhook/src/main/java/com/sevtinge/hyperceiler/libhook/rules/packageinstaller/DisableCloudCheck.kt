@@ -96,7 +96,7 @@ object DisableCloudCheck : BaseHook() {
 
                             successConstructor.newInstance(cloudParamsInstance)
                         } catch (e: Exception) {
-                            BaseHook.invokeOriginalMethod(
+                            invokeOriginalMethod(
                                 param.executable as Method,
                                 param.thisObject,
                                 param.args

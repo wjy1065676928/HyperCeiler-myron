@@ -36,7 +36,7 @@ public class SharedUserPatch extends CorePatchHelper {
             if (CorePatchHelper.isSharedUserEnabled()) {
                 try {
                     var field = findField(utilClass, "ALLOW_NON_PRELOADS_SYSTEM_SHAREDUIDS");
-                    int accessFlags = (int) getIntField(field, "accessFlags");
+                    int accessFlags = getIntField(field, "accessFlags");
 
                     setIntField(field, "accessFlags", accessFlags & ~Modifier.FINAL);
                     field.set(null, true);

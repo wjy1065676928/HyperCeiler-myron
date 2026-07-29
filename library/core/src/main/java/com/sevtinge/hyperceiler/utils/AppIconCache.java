@@ -206,8 +206,8 @@ public class AppIconCache {
             @Override
             public boolean equals(Object obj) {
                 if (this == obj) return true;
-                if (!(obj instanceof CacheKey other)) return false;
-                return sizePx == other.sizePx && packageName.equals(other.packageName);
+                if (!(obj instanceof CacheKey(String name, int px))) return false;
+                return sizePx == px && packageName.equals(name);
             }
 
     }

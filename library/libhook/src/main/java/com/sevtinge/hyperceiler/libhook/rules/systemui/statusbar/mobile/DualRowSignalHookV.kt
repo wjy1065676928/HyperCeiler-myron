@@ -91,7 +91,7 @@ class DualRowSignalHookV : MobileSignalHook() {
     private val mainHandler by lazy { Handler(Looper.getMainLooper()) }
 
     override fun init() {
-        BaseHook.registerHandlerHotReloadCleanup(mainHandler)
+        registerHandlerHotReloadCleanup(mainHandler)
         listenMobileSignal()
 
         hookConstructAndBind { rootView, subId ->

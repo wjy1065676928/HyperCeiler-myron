@@ -215,7 +215,7 @@ object StatusBarClockNew : BaseHook() {
             }
         }
 
-        BaseHook.getHotReloadRuntimeState(STATE_CLOCK_VIEW, TextView::class.java)
+        getHotReloadRuntimeState(STATE_CLOCK_VIEW, TextView::class.java)
             ?.let { clock ->
                 runCatching { findMethodInHierarchy(clock.javaClass, "updateTime") }
                     .getOrNull()
@@ -530,20 +530,20 @@ object StatusBarClockNew : BaseHook() {
             if (!clockMap.contains(textView)) {
                 updateTimeMethod.isAccessible = true
                 clockMap[textView] = updateTimeMethod
-                BaseHook.putHotReloadRuntimeState(STATE_CLOCK_VIEW, textView)
+                putHotReloadRuntimeState(STATE_CLOCK_VIEW, textView)
                 val listener = object : View.OnAttachStateChangeListener {
                     override fun onViewAttachedToWindow(v: View) {}
 
                     override fun onViewDetachedFromWindow(v: View) {
                         clockMap.remove(v)
                         v.removeOnAttachStateChangeListener(this)
-                        if (BaseHook.getHotReloadRuntimeState(STATE_CLOCK_VIEW, TextView::class.java) === v) {
-                            BaseHook.putHotReloadRuntimeState(STATE_CLOCK_VIEW, null)
+                        if (getHotReloadRuntimeState(STATE_CLOCK_VIEW, TextView::class.java) === v) {
+                            putHotReloadRuntimeState(STATE_CLOCK_VIEW, null)
                         }
                     }
                 }
                 textView.addOnAttachStateChangeListener(listener)
-                BaseHook.registerHotReloadCleanup {
+                registerHotReloadCleanup {
                     textView.removeOnAttachStateChangeListener(listener)
                 }
             }

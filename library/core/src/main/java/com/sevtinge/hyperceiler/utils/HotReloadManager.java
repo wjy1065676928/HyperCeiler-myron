@@ -376,32 +376,27 @@ public final class HotReloadManager {
         };
     }
 
-    private static final class RunningTargetsResult {
-        @NonNull
-        private final List<HookedTarget> mTargets;
-        @Nullable
-        private final ResultCode mFailureCode;
-        @Nullable
-        private final String mFailureMessage;
+    private record RunningTargetsResult(@NonNull List<HookedTarget> mTargets,
+                                        @Nullable ResultCode mFailureCode,
+                                        @Nullable String mFailureMessage) {
+            private RunningTargetsResult(@NonNull List<HookedTarget> mTargets,
+                                         @Nullable ResultCode mFailureCode,
+                                         @Nullable String mFailureMessage) {
+                this.mTargets = Collections.unmodifiableList(new ArrayList<>(mTargets));
+                this.mFailureCode = mFailureCode;
+                this.mFailureMessage = mFailureMessage;
+            }
 
-        private RunningTargetsResult(@NonNull List<HookedTarget> targets,
-                                     @Nullable ResultCode failureCode,
-                                     @Nullable String failureMessage) {
-            mTargets = Collections.unmodifiableList(new ArrayList<>(targets));
-            mFailureCode = failureCode;
-            mFailureMessage = failureMessage;
-        }
+            @NonNull
+            static RunningTargetsResult success(@NonNull List<HookedTarget> targets) {
+                return new RunningTargetsResult(targets, null, null);
+            }
 
-        @NonNull
-        static RunningTargetsResult success(@NonNull List<HookedTarget> targets) {
-            return new RunningTargetsResult(targets, null, null);
+            @NonNull
+            static RunningTargetsResult failure(@NonNull ResultCode code, @Nullable String message) {
+                return new RunningTargetsResult(Collections.emptyList(), code, message);
+            }
         }
-
-        @NonNull
-        static RunningTargetsResult failure(@NonNull ResultCode code, @Nullable String message) {
-            return new RunningTargetsResult(Collections.emptyList(), code, message);
-        }
-    }
 
     /** scope 应用在选择器中显示的数据。 */
     public static final class ScopeApp {
