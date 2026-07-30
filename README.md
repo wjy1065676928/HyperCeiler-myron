@@ -12,7 +12,11 @@
 
 ## 当前支持的版本
 
-Android 15-16 的 HyperOS
+基于我的K90 Pro Max（myron）3.308 进行功能修复
+
+适配版本：
+
+系统界面 com.android.systemui 16.03.251211.r
 
 ## 使用前说明
 
