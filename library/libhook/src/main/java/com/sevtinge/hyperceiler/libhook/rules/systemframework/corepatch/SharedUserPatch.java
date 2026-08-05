@@ -1,30 +1,30 @@
 package com.sevtinge.hyperceiler.libhook.rules.systemframework.corepatch;
 
-import static com.sevtinge.hyperceiler.libhook.utils.api.DeviceHelper.System.isMoreAndroidVersion;
 import static com.sevtinge.hyperceiler.libhook.base.BaseHook.deoptimizeMethods;
 import static com.sevtinge.hyperceiler.libhook.base.BaseHook.findClassIfExists;
 import static com.sevtinge.hyperceiler.libhook.base.BaseHook.findField;
 import static com.sevtinge.hyperceiler.libhook.base.BaseHook.getIntField;
 import static com.sevtinge.hyperceiler.libhook.base.BaseHook.setIntField;
+import static com.sevtinge.hyperceiler.libhook.utils.api.DeviceHelper.System.isMoreAndroidVersion;
 
 import android.content.pm.ApplicationInfo;
 import android.util.Log;
 
 import com.sevtinge.hyperceiler.common.log.XposedLog;
-import io.github.lingqiqi5211.ezhooktool.xposed.java.IMethodHook;
+import com.sevtinge.hyperceiler.libhook.base.PackageTarget;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.Arrays;
 
 import io.github.lingqiqi5211.ezhooktool.xposed.common.HookParam;
-import io.github.libxposed.api.XposedModuleInterface;
+import io.github.lingqiqi5211.ezhooktool.xposed.java.IMethodHook;
 
 public class SharedUserPatch extends CorePatchHelper {
 
     private static final String TAG = "SharedUserPatch";
 
-    public void init(XposedModuleInterface.SystemServerStartingParam lpparam) {
+    public void init(PackageTarget lpparam) {
         // Android 14+
         try {
             var utilClass = findClass("com.android.server.pm.ReconcilePackageUtils", lpparam.getClassLoader());

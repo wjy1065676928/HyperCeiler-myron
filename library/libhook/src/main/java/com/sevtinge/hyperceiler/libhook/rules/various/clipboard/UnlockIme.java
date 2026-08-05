@@ -29,13 +29,13 @@ import com.sevtinge.hyperceiler.common.log.XposedLog;
 import com.sevtinge.hyperceiler.libhook.appbase.input.InputMethodBottomManagerHelper;
 import com.sevtinge.hyperceiler.libhook.appbase.input.InputMethodConfig;
 import com.sevtinge.hyperceiler.libhook.base.BaseHook;
-import io.github.lingqiqi5211.ezhooktool.xposed.java.IMethodHook;
-import io.github.lingqiqi5211.ezhooktool.xposed.java.IReplaceHook;
+import com.sevtinge.hyperceiler.libhook.base.PackageTarget;
 
 import java.util.List;
 
 import io.github.lingqiqi5211.ezhooktool.xposed.common.HookParam;
-import io.github.libxposed.api.XposedModuleInterface;
+import io.github.lingqiqi5211.ezhooktool.xposed.java.IMethodHook;
+import io.github.lingqiqi5211.ezhooktool.xposed.java.IReplaceHook;
 
 /**
  * Source:
@@ -60,7 +60,7 @@ public class UnlockIme extends BaseHook {
         }
     }
 
-    private void startHook(XposedModuleInterface.PackageReadyParam param) {
+    private void startHook(PackageTarget param) {
         boolean showAllImeList = InputMethodConfig.shouldShowAllImeList();
 
         // 检查是否为小米定制输入法

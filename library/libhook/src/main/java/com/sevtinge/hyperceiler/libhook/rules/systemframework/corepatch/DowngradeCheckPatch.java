@@ -1,18 +1,17 @@
 package com.sevtinge.hyperceiler.libhook.rules.systemframework.corepatch;
 
-import static com.sevtinge.hyperceiler.libhook.utils.api.DeviceHelper.System.isAndroidVersion;
 import static com.sevtinge.hyperceiler.libhook.base.BaseHook.findClassIfExists;
 import static com.sevtinge.hyperceiler.libhook.base.BaseHook.findMethodExactIfExists;
 import static com.sevtinge.hyperceiler.libhook.base.BaseHook.hookMethod;
+import static com.sevtinge.hyperceiler.libhook.utils.api.DeviceHelper.System.isAndroidVersion;
 
 import com.sevtinge.hyperceiler.common.log.XposedLog;
-
-import io.github.libxposed.api.XposedModuleInterface;
+import com.sevtinge.hyperceiler.libhook.base.PackageTarget;
 
 public class DowngradeCheckPatch extends CorePatchHelper {
     private final String TAG = "DowngradeCheckPatch";
 
-    public void init(XposedModuleInterface.SystemServerStartingParam lpparam) {
+    public void init(PackageTarget lpparam) {
         // Android 15+
         try {
             Class<?> PackageManagerServiceUtils =
