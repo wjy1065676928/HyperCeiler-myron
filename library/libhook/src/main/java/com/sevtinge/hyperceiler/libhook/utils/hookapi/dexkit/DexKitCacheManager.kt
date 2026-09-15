@@ -145,7 +145,7 @@ internal object DexKitCacheManager {
         val currentBridge = bridge ?: throw IllegalStateException("DexKit not initialized")
         var result: Any? = null
         currentBridge.withBridge { rawBridge ->
-            val baseData: BaseData = try {
+            val baseData: BaseData? = try {
                 iDexKit.dexkit(rawBridge)
             } catch (e: ReflectiveOperationException) {
                 throw RuntimeException(e)
@@ -309,9 +309,13 @@ internal object DexKitCacheManager {
 
     /**
      * 把新查询得到的 [BaseData] 解析为反射对象，同时缓存其序列化结果。
+     *
+     * [baseData] 声明为可空：DexKit 查询未命中时（例如 `singleOrNull()` 匹配到 0 条或
+     * 多条）会返回 null，此时应给出明确的错误信息，而不是在 `baseData.javaClass`
+     * 上抛出一个语义不明的 NullPointerException。
      */
     private fun resolveAndCache(
-        baseData: BaseData,
+        baseData: BaseData?,
         key: String,
         classLoader: ClassLoader
     ): Any {
@@ -328,6 +332,10 @@ internal object DexKitCacheManager {
                 cache?.putString(key, baseData.toDexClass().serialize())
                 baseData.getInstance(classLoader)
             }
+            null -> throw IllegalStateException(
+                "DexKit returned no result for key '$key': " +
+                    "the matcher probably matched 0 or more than 1 member"
+            )
             else -> throw IllegalStateException("Unknown BaseData type: ${baseData.javaClass}")
         }
     }
