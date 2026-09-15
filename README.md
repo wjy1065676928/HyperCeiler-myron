@@ -12,11 +12,15 @@
 
 ## 当前支持的版本
 
-基于我的K90 Pro Max（myron）3.308 进行功能修复
+基于我的K90 Pro Max（myron）4.0.0.25 进行功能修复
 
 适配版本：
 
-系统界面 com.android.systemui 16.03.251211.r
+HyperOS3-4 Android 16-17
+
+系统界面 com.android.systemui 17.03.260226.r
+
+系统界面组件 miui.systemui.plugin 18.2.2.2.0
 
 ## 使用前说明
 
