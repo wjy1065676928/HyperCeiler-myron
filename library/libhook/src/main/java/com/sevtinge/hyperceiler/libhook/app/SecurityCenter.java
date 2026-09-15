@@ -42,6 +42,7 @@ import com.sevtinge.hyperceiler.libhook.rules.securitycenter.UnlockCarSicknessRe
 import com.sevtinge.hyperceiler.libhook.rules.securitycenter.app.AddAppInfoEntry;
 import com.sevtinge.hyperceiler.libhook.rules.securitycenter.app.AddAppManagerEntry;
 import com.sevtinge.hyperceiler.libhook.rules.securitycenter.app.AppDefaultSort;
+import com.sevtinge.hyperceiler.libhook.rules.securitycenter.app.AppDetailClickOpen;
 import com.sevtinge.hyperceiler.libhook.rules.securitycenter.app.AppDetails;
 import com.sevtinge.hyperceiler.libhook.rules.securitycenter.app.AppDisable;
 import com.sevtinge.hyperceiler.libhook.rules.securitycenter.app.AppRestrict;
@@ -91,6 +92,7 @@ public class SecurityCenter extends BaseLoad {
         initHook(new OpenByDefaultSetting(), PrefsBridge.getBoolean("security_center_app_default_setting"));
         initHook(AddAppInfoEntry.INSTANCE, PrefsBridge.getBoolean("security_center_aosp_app_info"));
         initHook(AddAppManagerEntry.INSTANCE, PrefsBridge.getBoolean("security_center_aosp_app_manager"));
+        initHook(AppDetailClickOpen.INSTANCE, PrefsBridge.getBoolean("security_center_app_detail_click_open"));
 
         // 省电与电池
         initHook(ShowBatteryTemperatureNew.INSTANCE, PrefsBridge.getBoolean("security_center_show_battery_temperature"));

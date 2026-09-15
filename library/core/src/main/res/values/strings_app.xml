@@ -1557,6 +1557,8 @@
     <string name="security_app_summary">Add new fields to app into page:\n• App version number\n• User ID\n• Data directory\n• APK directory\n• Min SDK version\n• Target SDK version\n• Open with Play Store\n• Launch</string>
     <string name="security_app_sort_title">App management list sorting</string>
     <string name="security_app_sort_summary">Modify the default sorting of the manage apps list</string>
+    <string name="security_app_detail_click_open_title">Tap app icon to launch</string>
+    <string name="security_app_detail_click_open_summary">Tap the app icon on the app details page to launch that app</string>
     <string name="security_restrict_app_title">Full restrictions</string>
     <string name="security_restrict_app_summary">Allows configuring Battery saver and Wi-Fi access for system apps</string>
     <string name="security_disable_app_title">App state control</string>
