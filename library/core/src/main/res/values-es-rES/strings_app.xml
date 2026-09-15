@@ -1181,7 +1181,6 @@
     <string name="market_disable_ads">Desactivar anuncios</string>
     <!--Mi sound-->
     <string name="misound">Auriculares</string>
-    <string name="misound_increase_sampling_rate">Aumentar la frecuencia de muestreo</string>
     <!--Mi Settings-->
     <string name="mi_settings">Mi Ajustes</string>
     <string name="mi_input_settings">Ajustes de entrada</string>

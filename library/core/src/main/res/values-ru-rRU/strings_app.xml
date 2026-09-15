@@ -1454,7 +1454,6 @@
     <string name="misound">Наушники</string>
     <string name="misound_bluetooth">Изменить состояние наушников на исходное звучание</string>
     <string name="misound_bluetooth_desc">Вам нужно включить области Системный фреймворк, Интерфейс системы и Наушники, а затем перезагрузить устройство.</string>
-    <string name="misound_increase_sampling_rate">Увеличить частоту дискретизации</string>
     <!--Mi Settings-->
     <string name="mi_settings">Mi Настройки</string>
     <string name="mi_input_settings">Настройки ввода</string>

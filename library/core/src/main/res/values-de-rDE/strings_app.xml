@@ -1404,7 +1404,6 @@
     <!--Mi sound-->
     <string name="misound">Kopfhörer</string>
     <string name="misound_bluetooth">Kopfhörerstatus auf Originalton ändern</string>
-    <string name="misound_increase_sampling_rate">Abtastrate erhöhen</string>
     <!--Mi Settings-->
     <string name="mi_settings">Mi Einstellungen</string>
     <string name="mi_input_settings">Eingabeeinstellungen</string>

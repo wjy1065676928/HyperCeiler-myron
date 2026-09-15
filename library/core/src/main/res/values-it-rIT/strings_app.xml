@@ -1075,7 +1075,6 @@
     <string name="market_package_monitor_desc">Proibisci il monitoraggio di GetApps installazione e disinstallazione di app</string>
     <!--Mi sound-->
     <string name="misound">Auricolari</string>
-    <string name="misound_increase_sampling_rate">Aumenta frequenza di campionamento</string>
     <!--Mi Settings-->
     <string name="mi_settings">Impostazioni Mi</string>
     <string name="mi_input_settings">Impostazioni di input</string>

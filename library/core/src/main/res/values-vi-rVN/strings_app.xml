@@ -1456,7 +1456,6 @@
     <string name="misound">Mi Sound</string>
     <string name="misound_bluetooth">Trạng thái tai nghe tự động chuyển sang âm thanh gốc</string>
     <string name="misound_bluetooth_desc">Bạn cần kiểm tra để bật phạm vi Framework hệ thống, System UI và Tai nghe, sau đó khởi động lại để áp dụng các thay đổi.</string>
-    <string name="misound_increase_sampling_rate">Tăng tốc độ lấy mẫu</string>
     <!--Mi Settings-->
     <string name="mi_settings">Cài đặt Mi</string>
     <string name="mi_input_settings">Thiết lập đầu vào</string>

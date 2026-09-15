@@ -1343,7 +1343,6 @@
     <!--Mi sound-->
     <string name="misound">Słuchawki</string>
     <string name="misound_bluetooth">Zmień status słuchawek na oryginalny dźwięk</string>
-    <string name="misound_increase_sampling_rate">Zwiększ częstotliwość próbkowania</string>
     <!--Mi Settings-->
     <string name="mi_settings">Ustawienia Mi</string>
     <string name="mi_input_settings">Ustawienia wprowadzania</string>

@@ -1677,7 +1677,6 @@
     <string name="misound_bluetooth_remember_device">Remember Device Sound Effect</string>
     <string name="misound_bluetooth_remember_device_desc">Remember separate sound effect settings for each device</string>
     <string name="misound_bluetooth_default_effect">Default sound effect</string>
-    <string name="misound_increase_sampling_rate">Increase sampling rate</string>
     <!--Mi Settings-->
     <string name="mi_settings">Mi Settings</string>
     <string name="mi_input_settings">Input settings</string>

@@ -1394,7 +1394,6 @@
     <!--Mi sound-->
     <string name="misound">Навушники</string>
     <string name="misound_bluetooth">Змінити статус навушників на оригінальний звук</string>
-    <string name="misound_increase_sampling_rate">Збільшити частоту дискретизації</string>
     <!--Mi Settings-->
     <string name="mi_settings">Mi Налаштування</string>
     <string name="mi_input_settings">Налаштування введення</string>

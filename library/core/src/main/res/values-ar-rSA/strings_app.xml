@@ -1442,7 +1442,6 @@
     <string name="misound">السماعات</string>
     <string name="misound_bluetooth">تغيير حالة سماعة الرأس إلى الصوت الأصلي</string>
     <string name="misound_bluetooth_desc">تحتاج إلى تمكين إطار النظام وواجهة النظام، وتطبيق سماعة الاذن في Lsposed ، ثم إعادة تشغيل الجهاز لتطبيق التغييرات.</string>
-    <string name="misound_increase_sampling_rate">زيادة معدل العينة</string>
     <!--Mi Settings-->
     <string name="mi_settings">إعدادات Mi</string>
     <string name="mi_input_settings">إعدادات الإدخال</string>

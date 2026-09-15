@@ -1630,7 +1630,6 @@
     <string name="misound_bluetooth_remember_device">记忆设备音效</string>
     <string name="misound_bluetooth_remember_device_desc">为每个设备记忆独立的音效设置</string>
     <string name="misound_bluetooth_default_effect">默认音效</string>
-    <string name="misound_increase_sampling_rate">提高音频采样率</string>
     <!--小米设置-->
     <string name="mi_settings">小米设置</string>
     <string name="mi_input_settings">输入设置</string>

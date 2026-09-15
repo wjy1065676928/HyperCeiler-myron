@@ -1110,7 +1110,6 @@
     <string name="market_package_monitor_desc">Larang GetApps memantau pemasangan dan pencopotan aplikasi</string>
     <!--Mi sound-->
     <string name="misound">Earphone</string>
-    <string name="misound_increase_sampling_rate">Meningkatkan tingkat pengambilan sampel</string>
     <!--Mi Settings-->
     <string name="mi_settings">Pengaturan Mi</string>
     <string name="mi_input_settings">Pengaturan masukan</string>

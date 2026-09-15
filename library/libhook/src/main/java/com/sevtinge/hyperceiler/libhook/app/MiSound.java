@@ -21,7 +21,6 @@ package com.sevtinge.hyperceiler.libhook.app;
 import com.hchen.database.HookBase;
 import com.sevtinge.hyperceiler.common.utils.PrefsBridge;
 import com.sevtinge.hyperceiler.libhook.base.BaseLoad;
-import com.sevtinge.hyperceiler.libhook.rules.misound.IncreaseSamplingRate;
 import com.sevtinge.hyperceiler.libhook.rules.misound.NewAutoSEffSwitch;
 
 @HookBase(targetPackage = "com.miui.misound")
@@ -31,6 +30,5 @@ public class MiSound extends BaseLoad {
     @Override
     public void onPackageLoaded() {
         initHook(new NewAutoSEffSwitch(), PrefsBridge.getBoolean("misound_bluetooth"));
-        initHook(IncreaseSamplingRate.INSTANCE, PrefsBridge.getBoolean("misound_increase_sampling_rate"));
     }
 }

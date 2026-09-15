@@ -1507,7 +1507,6 @@
     <string name="misound_bluetooth_remember_device">記憶裝置音效</string>
     <string name="misound_bluetooth_remember_device_desc">為每個裝置記憶獨立的音效設定</string>
     <string name="misound_bluetooth_default_effect">預設音效</string>
-    <string name="misound_increase_sampling_rate">提高音頻採樣率</string>
     <!--Mi Settings-->
     <string name="mi_settings">小米設定</string>
     <string name="mi_input_settings">輸入設定</string>

@@ -1454,7 +1454,6 @@
     <string name="misound">イヤホン</string>
     <string name="misound_bluetooth">ヘッドホン接続時に自動でサウンド効果を切り替える</string>
     <string name="misound_bluetooth_desc">変更を適用するには、システムフレームワーク、システム UI、イヤホンのスコープが有効になっていることを確認してから再起動する必要があります。</string>
-    <string name="misound_increase_sampling_rate">サンプリングレートを上げる</string>
     <!--Mi Settings-->
     <string name="mi_settings">Mi の設定</string>
     <string name="mi_input_settings">入力設定</string>

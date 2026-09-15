@@ -1450,7 +1450,6 @@
     <string name="misound">Fones de ouvido</string>
     <string name="misound_bluetooth">Mudar status do fone de ouvido para o som original</string>
     <string name="misound_bluetooth_desc">Você precisa ativar os escopos Framework do Sistema, UI do Sistema e Fones de ouvido e, em seguida, reiniciar o dispositivo para aplicar as alterações.</string>
-    <string name="misound_increase_sampling_rate">Aumentar taxa de amostragem</string>
     <!--Mi Settings-->
     <string name="mi_settings">Configurações Mi</string>
     <string name="mi_input_settings">Configurações de entrada</string>
