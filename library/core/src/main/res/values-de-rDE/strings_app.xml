@@ -891,7 +891,6 @@
     <!--Sound Recorder-->
     <string name="sound_recorder">Audiorecorder</string>
     <string name="sound_recorder_disable_ai_watermark">KI-Wasserzeichen deaktivieren</string>
-    <string name="sound_recorder_unlock_recording_scene">Aufnahmeszene freischalten</string>
     <!--Notes-->
     <!--Always-on display-->
     <string name="aod_hyperos">Immer-an-Anzeige und Sperrbildschirm-Editor</string>

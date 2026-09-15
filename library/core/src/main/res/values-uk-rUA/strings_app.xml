@@ -889,7 +889,6 @@
     <!--Sound Recorder-->
     <string name="sound_recorder">Диктофон</string>
     <string name="sound_recorder_disable_ai_watermark">Вимкнути водяний знак ШІ</string>
-    <string name="sound_recorder_unlock_recording_scene">Розблокувати сцену запису</string>
     <!--Notes-->
     <!--Always-on display-->
     <string name="aod_hyperos">Завжди увімкнений екран та редактор екрана блокування</string>

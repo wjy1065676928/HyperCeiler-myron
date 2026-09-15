@@ -1077,7 +1077,6 @@
     <!--录音机-->
     <string name="sound_recorder">录音机</string>
     <string name="sound_recorder_disable_ai_watermark">禁用水印</string>
-    <string name="sound_recorder_unlock_recording_scene">解锁选择录音场景</string>
     <!--笔记-->
     <string name="notes">笔记</string>
     <string name="notes_disable_ai_watermark">禁用水印</string>

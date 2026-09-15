@@ -932,7 +932,6 @@
     <!--Sound Recorder-->
     <string name="sound_recorder">サウンドレコーダー</string>
     <string name="sound_recorder_disable_ai_watermark">AI のウォーターマークを無効化</string>
-    <string name="sound_recorder_unlock_recording_scene">録音シーンのロックを解除</string>
     <!--Notes-->
     <string name="notes">メモ</string>
     <string name="notes_disable_ai_watermark">AI のウォーターマークを無効化</string>

@@ -932,7 +932,6 @@
     <!--Sound Recorder-->
     <string name="sound_recorder">Запись звука</string>
     <string name="sound_recorder_disable_ai_watermark">Отключить водяной знак ИИ</string>
-    <string name="sound_recorder_unlock_recording_scene">Разблокировать сцену записи</string>
     <!--Notes-->
     <string name="notes">Заметки</string>
     <string name="notes_disable_ai_watermark">Отключить водяной знак ИИ</string>
