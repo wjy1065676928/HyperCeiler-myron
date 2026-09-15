@@ -2,19 +2,13 @@ package com.sevtinge.hyperceiler.libhook.rules.systemframework.corepatch;
 
 import static com.sevtinge.hyperceiler.libhook.base.BaseHook.deoptimizeMethods;
 import static com.sevtinge.hyperceiler.libhook.base.BaseHook.findClassIfExists;
-import static com.sevtinge.hyperceiler.libhook.base.BaseHook.findField;
-import static com.sevtinge.hyperceiler.libhook.base.BaseHook.getIntField;
-import static com.sevtinge.hyperceiler.libhook.base.BaseHook.setIntField;
-import static com.sevtinge.hyperceiler.libhook.utils.api.DeviceHelper.System.isMoreAndroidVersion;
 
 import android.content.pm.ApplicationInfo;
-import android.util.Log;
 
 import com.sevtinge.hyperceiler.common.log.XposedLog;
 import com.sevtinge.hyperceiler.libhook.base.PackageTarget;
 
 import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
 import java.util.Arrays;
 
 import io.github.lingqiqi5211.ezhooktool.xposed.common.HookParam;
@@ -32,23 +26,62 @@ public class SharedUserPatch extends CorePatchHelper {
                 deoptimizeMethods(utilClass, "reconcilePackages");
             }
 
-            // https://cs.android.com/android/platform/superproject/+/android-14.0.0_r60:frameworks/base/services/core/java/com/android/server/pm/ReconcilePackageUtils.java;l=61;bpv=1;bpt=0
+            // ALLOW_NON_PRELOADS_SYSTEM_SHAREDUIDS 是 private static final，
+            // 但自 Android 12 起，Field.set() 的 final 校验已下沉到 ART native 层，
+            // 仅抹掉 java.lang.reflect.Field.accessFlags 的 FINAL 位不再有效，
+            // 会抛 IllegalAccessException: Cannot set private static final field。
+            //
+            // 现代 AOSP 的该常量并非硬编码，而是由 aconfig flag 推导（实测 services.jar）：
+            //   private static final boolean ALLOW_NON_PRELOADS_SYSTEM_SHAREDUIDS =
+            //       !Flags.restrictNonpreloadsSystemShareduids();
+            // 因此改为 hook 那个 flag 方法返回 false，<clinit> 自然会算出 true。
             if (CorePatchHelper.isSharedUserEnabled()) {
                 try {
-                    var field = findField(utilClass, "ALLOW_NON_PRELOADS_SYSTEM_SHAREDUIDS");
-                    int accessFlags = getIntField(field, "accessFlags");
-
-                    setIntField(field, "accessFlags", accessFlags & ~Modifier.FINAL);
-                    field.set(null, true);
+                    findAndHookMethod(
+                        "com.android.internal.hidden_from_bootclasspath.android.content.pm.Flags",
+                        lpparam.getClassLoader(),
+                        "restrictNonpreloadsSystemShareduids",
+                        new IMethodHook() {
+                            @Override
+                            public void before(HookParam param) {
+                                // restrict=true 会令 ALLOW_NON_PRELOADS... 为 false，这里反过来
+                                param.setResult(false);
+                            }
+                        }
+                    );
+                    XposedLog.d(TAG, "system", "hooked restrictNonpreloadsSystemShareduids -> false");
                 } catch (Throwable e) {
-                    XposedLog.e(TAG, "system", "ALLOW_NON_PRELOADS_SYSTEM_SHAREDUIDS failed" + Log.getStackTraceString(e));
+                    XposedLog.w(TAG, "system", "hook restrictNonpreloadsSystemShareduids failed: " + e);
+                }
+
+                // 兜底：若 ReconcilePackageUtils 已被提前加载（<clinit> 已执行、常量已定死），
+                // 上面的 flag hook 就来不及生效。此时改从 MIUI 自家授权入口放行 ——
+                // reconcilePackages 在判定失败前会调用：
+                //   PackageManagerServiceStub.get().allowInstallNonPreloadApp(pkgName)
+                // 让它返回 true 即可绕过拒绝。
+                try {
+                    findAndHookMethod(
+                        "com.android.server.pm.PackageManagerServiceStub",
+                        lpparam.getClassLoader(),
+                        "allowInstallNonPreloadApp",
+                        String.class,
+                        new IMethodHook() {
+                            @Override
+                            public void before(HookParam param) {
+                                param.setResult(true);
+                            }
+                        }
+                    );
+                    XposedLog.d(TAG, "system", "hooked allowInstallNonPreloadApp -> true");
+                } catch (Throwable e) {
+                    XposedLog.w(TAG, "system", "hook allowInstallNonPreloadApp failed: " + e);
                 }
             }
         } catch (Throwable t) {
             XposedLog.e(TAG, "system", "Android 14+ hook failed, crash: " + t);
         }
 
-        // Android 11+
+        // 签名校验绕过（Android 11 引入，Android 17 依然适用）
         try {
             Class<?> signingDetails = getSigningDetails(lpparam.getClassLoader());
             // for SharedUser
@@ -157,11 +190,12 @@ public class SharedUserPatch extends CorePatchHelper {
         }
     }
 
+    /**
+     * SigningDetails 自 Android 13 起从 PackageParser 内部类提升为独立类。
+     * 本 fork 仅适配 Android 17，直接使用新位置。
+     */
     Class<?> getSigningDetails(ClassLoader classLoader) {
-        if (isMoreAndroidVersion(33)) {
-            return findClassIfExists("android.content.pm.SigningDetails", classLoader);
-        }
-        return findClass("android.content.pm.PackageParser.SigningDetails", classLoader);
+        return findClassIfExists("android.content.pm.SigningDetails", classLoader);
     }
 
     static Object callOriginMethod(Object obj, String methodName, Object... args) {
@@ -177,7 +211,7 @@ public class SharedUserPatch extends CorePatchHelper {
      * Get signing details for PackageSetting or SharedUserSetting
      */
     Object Setting_getSigningDetails(Object pkgOrSharedUser) {
-        // PackageSettingBase(A11)|PackageSetting(A13)|SharedUserSetting.<PackageSignatures>signatures.<PackageParser.SigningDetails>mSigningDetails
+        // PackageSetting/SharedUserSetting.<PackageSignatures>signatures.<SigningDetails>mSigningDetails
         return com.sevtinge.hyperceiler.libhook.base.BaseHook.getObjectField(com.sevtinge.hyperceiler.libhook.base.BaseHook.getObjectField(pkgOrSharedUser, "signatures"), "mSigningDetails");
     }
 
@@ -188,18 +222,20 @@ public class SharedUserPatch extends CorePatchHelper {
         com.sevtinge.hyperceiler.libhook.base.BaseHook.setObjectField(com.sevtinge.hyperceiler.libhook.base.BaseHook.getObjectField(pkgOrSharedUser, "signatures"), "mSigningDetails", signingDetails);
     }
 
+    /**
+     * SharedUserSetting 持有其成员包的集合。
+     * Android 13 起字段名为 mPackages（旧版的 packages 在 Android 17 上已不存在）。
+     */
     protected Object SharedUserSetting_packages(Object /*SharedUserSetting*/ sharedUser) {
-        if (isMoreAndroidVersion(33)) {
-            return com.sevtinge.hyperceiler.libhook.base.BaseHook.getObjectField(sharedUser, "mPackages");
-        }
-        return com.sevtinge.hyperceiler.libhook.base.BaseHook.getObjectField(sharedUser, "packages");
+        return com.sevtinge.hyperceiler.libhook.base.BaseHook.getObjectField(sharedUser, "mPackages");
     }
 
+    /**
+     * 合并签名血缘。Android 13 起重载带 mergeTarget 参数，
+     * 2 表示 MERGE_RESTRICTED_CAPABILITY。
+     */
     protected Object SigningDetails_mergeLineageWith(Object self, Object other) {
-        if (isMoreAndroidVersion(33)) {
-            return com.sevtinge.hyperceiler.libhook.base.BaseHook.callMethod(self, "mergeLineageWith", other, 2 /*MERGE_RESTRICTED_CAPABILITY*/);
-        }
-        return com.sevtinge.hyperceiler.libhook.base.BaseHook.callMethod(self, "mergeLineageWith", other);
+        return com.sevtinge.hyperceiler.libhook.base.BaseHook.callMethod(self, "mergeLineageWith", other, 2 /*MERGE_RESTRICTED_CAPABILITY*/);
     }
 
     private void hookVerifySignatures(Class<?> utilClass) {
