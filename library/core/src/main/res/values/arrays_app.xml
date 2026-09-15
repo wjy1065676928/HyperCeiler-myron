@@ -1062,4 +1062,16 @@
         <item>2</item>
         <item>3</item>
     </string-array>
+
+    <string-array name="system_ui_clear_focus_scope">
+        <item>@string/system_ui_clear_focus_scope_all</item>
+        <item>@string/system_ui_clear_focus_scope_include</item>
+        <item>@string/system_ui_clear_focus_scope_exclude</item>
+    </string-array>
+
+    <string-array name="system_ui_clear_focus_scope_value">
+        <item>all</item>
+        <item>include</item>
+        <item>exclude</item>
+    </string-array>
 </resources>

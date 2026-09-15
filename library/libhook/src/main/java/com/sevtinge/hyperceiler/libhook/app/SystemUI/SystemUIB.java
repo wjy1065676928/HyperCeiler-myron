@@ -95,6 +95,7 @@ import com.sevtinge.hyperceiler.libhook.rules.systemui.statusbar.icon.b.HideBatt
 import com.sevtinge.hyperceiler.libhook.rules.systemui.statusbar.icon.v.WifiStandard;
 import com.sevtinge.hyperceiler.libhook.rules.systemui.statusbar.island.HideStrongToast;
 import com.sevtinge.hyperceiler.libhook.rules.systemui.statusbar.island.UnlockFocus;
+import com.sevtinge.hyperceiler.libhook.rules.systemui.controlcenter.ClearFocusOnClearAll;
 import com.sevtinge.hyperceiler.libhook.rules.systemui.statusbar.mobile.DualRowSignalHookV;
 import com.sevtinge.hyperceiler.libhook.rules.systemui.statusbar.mobile.MobilePublicHookV;
 import com.sevtinge.hyperceiler.libhook.rules.systemui.statusbar.mobile.MobileTypeSingle2Hook;
@@ -172,6 +173,8 @@ public class SystemUIB extends BaseLoad {
         if (PrefsBridge.getBoolean("system_ui_unlock_all_focus")) {
             initHook(new UnlockFocus());
         }
+
+        initHook(ClearFocusOnClearAll.INSTANCE, PrefsBridge.getBoolean("system_ui_clear_focus_on_clear_all"));
 
 
         // 灵动舞台

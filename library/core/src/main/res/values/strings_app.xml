@@ -962,6 +962,15 @@
     <string name="system_ui_control_center_card_tiles_customization_add">Added</string>
     <string name="system_ui_control_center_card_tiles_customization_not_add">Not added</string>
     <string name="system_ui_control_center_unlock_all_focus">Remove focus notification whitelist</string>
+    <string name="system_ui_clear_focus_on_clear_all">Clear focus notifications with Clear All</string>
+    <string name="system_ui_clear_focus_on_clear_all_desc">Also dismiss all focus notifications when tapping the Clear All button in the notification shade</string>
+    <string name="system_ui_clear_focus_scope">Clear scope</string>
+    <string name="system_ui_clear_focus_scope_desc">Choose which apps\' focus notifications are dismissed with Clear All</string>
+    <string name="system_ui_clear_focus_scope_all">All apps</string>
+    <string name="system_ui_clear_focus_scope_include">Only selected apps</string>
+    <string name="system_ui_clear_focus_scope_exclude">All except selected apps</string>
+    <string name="system_ui_clear_focus_app_list">Select apps</string>
+    <string name="system_ui_clear_focus_app_list_desc">Apps affected by the current clear scope</string>
     <string name="system_ui_focus_notification_list">Focus notification list</string>
     <string name="system_ui_control_center_remove_notif_num_limit">Remove notification count limit</string>
     <string name="system_ui_control_center_remove_notif_num_limit_desc">Allow display 10, 17 or more notifications.</string>

@@ -39,6 +39,7 @@ public class ControlCenterSettings extends DashboardFragment {
 
     Preference mExpandNotification;
     Preference mFocusNotificationList;
+    Preference mClearFocusAppList;
     RecommendPreference mRecommend;
 
     @Override
@@ -63,6 +64,18 @@ public class ControlCenterSettings extends DashboardFragment {
         mFocusNotificationList = findPreference("prefs_key_system_ui_focus_notification_list");
 
         mFocusNotificationList.setOnPreferenceClickListener(
+            preference -> {
+                Intent intent = new Intent(getActivity(), SubPickerActivity.class);
+                intent.putExtra("mode", ALL_APPS_MODE);
+                intent.putExtra("key", preference.getKey());
+                startActivity(intent);
+                return true;
+            }
+        );
+
+        mClearFocusAppList = findPreference("prefs_key_system_ui_clear_focus_app_list");
+
+        mClearFocusAppList.setOnPreferenceClickListener(
             preference -> {
                 Intent intent = new Intent(getActivity(), SubPickerActivity.class);
                 intent.putExtra("mode", ALL_APPS_MODE);
