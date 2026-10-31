@@ -172,5 +172,23 @@
             android:title="@string/security_center_game_dock_light_background"
             android:summary="@string/security_center_game_dock_light_background_desc" />
 
+        <SwitchPreference
+            android:defaultValue="false"
+            android:key="prefs_key_migameservice_fix_gameai_joyose_connect"
+            android:title="@string/migameservice_fix_gameai_joyose_connect"
+            android:summary="@string/migameservice_fix_gameai_joyose_connect_desc" />
+
+        <SeekBarPreferenceCompat
+            android:defaultValue="250"
+            android:dependency="prefs_key_migameservice_fix_gameai_joyose_connect"
+            android:key="prefs_key_migameservice_ai_pick_interval"
+            android:summary="@string/migameservice_ai_pick_interval_desc"
+            android:title="@string/migameservice_ai_pick_interval"
+            app:format="%s"
+            app:maxValue="1000"
+            app:minValue="100"
+            app:showSeekBarValue="true"
+            app:stepValue="50" />
+
     </PreferenceCategory>
 </PreferenceScreen>

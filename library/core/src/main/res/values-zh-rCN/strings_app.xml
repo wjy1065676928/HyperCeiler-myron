@@ -1577,6 +1577,10 @@
     <string name="security_center_remove_game_toast">移除游戏模式 Toast 弹窗</string>
     <string name="security_center_game_dock_light_background">浅色模式侧边栏浅色背景</string>
     <string name="security_center_game_dock_light_background_desc">浅色模式下，将游戏侧边栏（快捷应用）与功能部分的背景改为和「全部应用」抽屉一致的浅色</string>
+    <string name="migameservice_fix_gameai_joyose_connect">修复 AI 游戏服务连接</string>
+    <string name="migameservice_fix_gameai_joyose_connect_desc">修复 AI 游戏服务（venus.gameai）与 Joyose 的连接竞态，使自动拾取 / 自动奔跑能正常启动。需将「小米游戏服务」加入模块作用域</string>
+    <string name="migameservice_ai_pick_interval">自动拾取识别间隔</string>
+    <string name="migameservice_ai_pick_interval_desc">自动拾取控制器处理一帧的间隔。原值为 1000 ms，数值越小反应越快，但更耗 CPU</string>
     <string name="security_center_disable_remove_screen_hold_on">禁用移除息屏听剧与熄屏挂机</string>
     <string name="security_center_unlock_memc">解锁动态画面补偿</string>
     <string name="security_center_unlock_enhance_contours">解锁影像轮廓增强</string>
