@@ -67,6 +67,21 @@ object GameDockLightBackground : BaseHook() {
     private var blurDrawMethod: Method? = null
     private var blurPanel: View? = null
 
+    // 判定"是否属于游戏侧边栏"的唯一依据：侧边栏窗口的根布局。
+    //
+    // res/layout/sidebar_panel_container.xml：
+    //   <FrameLayout android:id="@id/sidebar_panel_container">
+    //       <RegionSamplingImageView android:id="@id/sidebar_background" />   折叠态抓手
+    //       <TurboLayout             android:id="@id/sidebar_panel" />         侧边栏主体
+    //       <DockShortCutMenu        android:id="@id/sidebar_shortcut_menu" /> 快捷菜单
+    //   </FrameLayout>
+    //
+    // game_toolbox_main_container / iv_game_toolbox_title_dual_bg /
+    // game_toolbox_second_container 等都在 game_turbo_main_view.xml 中，
+    // 被 inflate 进 sidebar_panel，因此全部位于 sidebar_panel_container 之内。
+    // 只认这一个 id，可保证改动严格限制在侧边栏，不波及其它页面。
+    private val toolboxIds = setOf("sidebar_panel_container")
+
     override fun init() {
         val night = (Resources.getSystem().configuration.uiMode
             and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
@@ -83,6 +98,26 @@ object GameDockLightBackground : BaseHook() {
         (v.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) ==
             Configuration.UI_MODE_NIGHT_YES
 
+    /**
+     * 是否属于游戏侧边栏。
+     *
+     * 自身或任一祖先（最多 30 层）命中 [toolboxIds] 即判定为侧边栏内部。
+     * 侧边栏与安全中心主界面共用一个窗口，无法用 rootView 区分，只能按 id 判断。
+     *
+     * 注意：setTextColor 可能在视图尚未 attach 时调用，此时 parent 链不完整，
+     * 判定为 false，具体染色由 onAttachedToWindow 那条路径兜底。
+     */
+    private fun inToolbox(v: View): Boolean {
+        var cur: View? = v
+        var depth = 0
+        while (cur != null && depth < 30) {
+            if (idName(cur) in toolboxIds) return true
+            cur = cur.parent as? View
+            depth++
+        }
+        return false
+    }
+
     /** 文字颜色在任何时候被设置都拦截（解决绑定晚于 attach 的问题） */
     private fun hookTextColor() {
         try {
@@ -93,6 +128,7 @@ object GameDockLightBackground : BaseHook() {
                     override fun before(param: HookParam) {
                         val tv = param.thisObject as? TextView ?: return
                         if (isNightCtx(tv)) return
+                        if (!inToolbox(tv)) return
                         val c = param.args[0] as? Int ?: return
                         val a = Color.alpha(c)
                         val lum = (Color.red(c) * 299 + Color.green(c) * 587 + Color.blue(c) * 114) / 1000
@@ -116,6 +152,7 @@ object GameDockLightBackground : BaseHook() {
                     override fun before(param: HookParam) {
                         val tv = param.thisObject as? TextView ?: return
                         if (isNightCtx(tv)) return
+                        if (!inToolbox(tv)) return
                         val cs = param.args[0] as? android.content.res.ColorStateList ?: return
                         val c = try { cs.defaultColor } catch (t: Throwable) { return }
                         val a = Color.alpha(c)
@@ -141,6 +178,7 @@ object GameDockLightBackground : BaseHook() {
                     override fun before(param: HookParam) {
                         val tv = param.thisObject as? TextView ?: return
                         if (isNightCtx(tv)) return
+                        if (!inToolbox(tv)) return
                         val c = tv.currentTextColor
                         val a = Color.alpha(c)
                         val lum = (Color.red(c) * 299 + Color.green(c) * 587 + Color.blue(c) * 114) / 1000
@@ -204,6 +242,7 @@ object GameDockLightBackground : BaseHook() {
             override fun after(param: HookParam) {
                 val iv = param.thisObject as? ImageView ?: return
                 if (isNightCtx(iv)) return
+                if (!inToolbox(iv)) return
                 val d = param.args[0] as? Drawable ?: return
                 if (d is android.graphics.drawable.VectorDrawable) {
                     iv.setColorFilter(0xFF444444.toInt(), PorterDuff.Mode.SRC_IN)
@@ -227,6 +266,7 @@ object GameDockLightBackground : BaseHook() {
                     override fun before(param: HookParam) {
                         val iv = param.thisObject as? ImageView ?: return
                         if (isNightCtx(iv)) return
+                        if (!inToolbox(iv)) return
                         if (inSecondaryPage(iv)) {
                             // 二级页保持深色底，图标要原色（白）
                             if (iv.colorFilter != null) iv.colorFilter = null
@@ -265,6 +305,7 @@ object GameDockLightBackground : BaseHook() {
                         // 只能保持原深色底以保证可读性，整体跳过
                         if (inSecondaryPage(v)) return
                         val name = idName(v)
+                        if (!inToolbox(v)) return
                         when (name) {
                             // 折叠态抓手（那条线）保持原样，不要动，否则会变成白色块
                             "game_toolbox_main_container" -> {
