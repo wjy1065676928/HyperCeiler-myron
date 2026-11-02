@@ -23,7 +23,7 @@ import android.content.Intent;
 import android.content.res.Configuration;
 import android.os.Bundle;
 import android.os.Handler;
-import android.util.Log;
+import com.sevtinge.hyperceiler.common.log.ModuleLog;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.TextView;
@@ -193,12 +193,12 @@ public class CongratulationFragment extends BaseFragment implements IOnFocusList
             }
             isComplete = true;
             endTime = System.currentTimeMillis();
-            Log.d("ProvisionCongratulationActivity", "displayOSLogoDelay: " + (endTime - initTime) + " endTime " + endTime);
+            ModuleLog.d("ProvisionCongratulationActivity", "displayOSLogoDelay: " + (endTime - initTime) + " endTime " + endTime);
         }, DELAY_TIME);
     }
 
     private void initSetupWizardAnimConnection() {
-        Log.d("ProvisionCongratulationActivity", "onSetupComplete");
+        ModuleLog.d("ProvisionCongratulationActivity", "onSetupComplete");
         refreshCompletedView();
         IS_SUPPORT_NEW_PROVISION_STRATEGY = false;
     }
@@ -249,7 +249,7 @@ public class CongratulationFragment extends BaseFragment implements IOnFocusList
 
         view.postDelayed(() -> {
             view.setEnabled(true);
-            Log.d("ProvisionCongratulationActivity", "startBtnAnim: mNextView setEnabled");
+            ModuleLog.d("ProvisionCongratulationActivity", "startBtnAnim: mNextView setEnabled");
         }, 2000L);
         if (view.getVisibility() == View.VISIBLE) return;
         view.setVisibility(View.VISIBLE);
@@ -259,7 +259,7 @@ public class CongratulationFragment extends BaseFragment implements IOnFocusList
             public void onComplete(Object toTag) {
                 super.onComplete(toTag);
                 view.setEnabled(true);
-                Log.d("ProvisionCongratulationActivity", "onComplete: mNextView setEnabled");
+                ModuleLog.d("ProvisionCongratulationActivity", "onComplete: mNextView setEnabled");
             }
         });
         IStateStyle state = Folme.use(view).state();
@@ -299,7 +299,7 @@ public class CongratulationFragment extends BaseFragment implements IOnFocusList
     @Override
     public void onResume() {
         super.onResume();
-        Log.d("ProvisionCongratulationActivity", "onResume");
+        ModuleLog.d("ProvisionCongratulationActivity", "onResume");
         mHandler.postDelayed(() -> {
             if (isFirstBoot) {
                 startAnim();
@@ -310,13 +310,13 @@ public class CongratulationFragment extends BaseFragment implements IOnFocusList
     @Override
     public void onConfigurationChanged(@NonNull Configuration newConfig) {
         super.onConfigurationChanged(newConfig);
-        Log.d("ProvisionCongratulationActivity", "onConfigurationChanged: " + newConfig);
+        ModuleLog.d("ProvisionCongratulationActivity", "onConfigurationChanged: " + newConfig);
         setBackGroundNoAnim();
     }
 
     @Override
     public void onWindowFocusChanged(boolean hasFocus) {
-        Log.d("ProvisionCongratulationActivity", "onWindowFocusChanged: isFirstBoot " + this.isFirstBoot);
+        ModuleLog.d("ProvisionCongratulationActivity", "onWindowFocusChanged: isFirstBoot " + this.isFirstBoot);
         if (isFirstBoot) {
             startAnim();
         }
@@ -325,7 +325,7 @@ public class CongratulationFragment extends BaseFragment implements IOnFocusList
     @Override
     public void onStop() {
         super.onStop();
-        Log.d(TAG, "onStop");
+        ModuleLog.d(TAG, "onStop");
         if (mGlowController != null) {
             mGlowController.stop();
         }
@@ -343,9 +343,9 @@ public class CongratulationFragment extends BaseFragment implements IOnFocusList
         try {
             ActivityOptions customTaskAnimation = ActivityOptions.makeCustomAnimation(requireContext(), R.anim.enter_home_anim, R.anim.provision_out_anim);
             startActivity(getHomeIntent(), customTaskAnimation.toBundle());
-            Log.d(TAG, "startHome success " + customTaskAnimation);
+            ModuleLog.d(TAG, "startHome success " + customTaskAnimation);
         } catch (Exception ex) {}
-        Log.e(TAG, "getActivityOptions fail");
+        ModuleLog.e(TAG, "getActivityOptions fail");
         finish();
     }
 

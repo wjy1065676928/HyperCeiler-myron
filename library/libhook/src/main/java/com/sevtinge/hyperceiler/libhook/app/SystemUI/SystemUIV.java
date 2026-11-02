@@ -138,11 +138,18 @@ public class SystemUIV extends BaseLoad {
 
     @Override
     public void onPackageLoaded() {
+        initHook(new com.sevtinge.hyperceiler.libhook.rules.home.gesture.HomeExtraGesturesOS4(),
+            isHyperOSVersion(4f));
+        initHook(new com.sevtinge.hyperceiler.libhook.rules.home.gesture.HomeQuickSwitchSystemUIOS4(),
+            isHyperOSVersion(4f));
+        initHook(new com.sevtinge.hyperceiler.libhook.rules.home.dock.DockGlassRendererSystemUI(),
+            isHyperOSVersion(4f));
         MiuiStub.createHook();
         // PluginHelper
         initHook(NewPluginHelperKt.INSTANCE);
         // Actions
-        initHook(new StatusBarActionBootstrap(), PrefsBridge.getBoolean("home_gesture_enable"));
+        initHook(new StatusBarActionBootstrap(), PrefsBridge.getBoolean("home_gesture_enable")
+            || com.sevtinge.hyperceiler.libhook.utils.api.DeviceHelper.System.isMoreHyperOSVersion(4f));
 
         // 锁屏
         initHook(CustomizeBottomButton.INSTANCE, Keyguard.getLeftButtonType() != 0 && !isMoreSmallVersion(200, 2f));
@@ -267,7 +274,6 @@ public class SystemUIV extends BaseLoad {
 
         // Other
         initHook(DoubleTapToSleep.INSTANCE, PrefsBridge.getBoolean("system_ui_status_bar_double_tap_to_sleep"));
-        initHook(new HideStatusBarBeforeScreenshot(), PrefsBridge.getBoolean("system_ui_status_bar_hide_icon"));
 
         initHook(new GuidedAccessDialogBlock(),
             PrefsBridge.getBoolean("system_framework_guided_access")

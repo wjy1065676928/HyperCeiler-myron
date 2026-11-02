@@ -46,14 +46,21 @@ public class XposedLogLoader {
 
     private static final String LSPD_LOG_DIR = "/data/adb/lspd/log";
     private static final String LSPD_LOG_OLD_DIR = "/data/adb/lspd/log.old";
+    private static final String PROC_ROOT_PREFIX = "/proc/1/root";
+    private static final int LSPD_SOURCE_UNAVAILABLE = 20;
+    private static final int LSPD_EMPTY = 21;
+    private static final int LSPD_STAGE_FAILED = 22;
+    private static final int LSPD_COPY_FAILED = 24;
+    private static final int LSPD_CHMOD_FAILED = 25;
+    private static final int LSPD_REPLACE_FAILED = 26;
 
     private static final String APP_LOG_BASE_DIR = "log";
     private static final String LSPD_COPY_DIR = "lspd";
     private static final String LSPD_LOG_SUBDIR = "log";
     private static final String LSPD_LOG_OLD_SUBDIR = "log.old";
     private static final String FILTERED_MODULE = "Xposed";
-    private static final String MODULES_LOG_PREFIX = "modules_";
-    private static final String VERBOSE_LOG_PREFIX = "verbose_";
+    private static final String MODULES_LOG_PREFIX = "modules";
+    private static final String VERBOSE_LOG_PREFIX = "verbose";
 
     private static final String HYPERCEILER_TAG = "HyperCeiler";
     private static final int MAX_ENTRY_MESSAGE_LENGTH = 32 * 1024;
@@ -71,12 +78,64 @@ public class XposedLogLoader {
 
     private static volatile XposedLogLoader sInstance;
     private static volatile boolean sSyncDeferredUntilNextLaunch;
+    private volatile LspdSourceAccess mPreferredSourceAccess;
+
+    private static String buildLspdCopyCommand(LspdSourceAccess access, String sourceDir, File targetDir) {
+        String script = buildLspdCopyScript(sourceDir, targetDir.getAbsolutePath());
+        return switch (access) {
+            case DIRECT, PROC_ROOT -> script;
+            case NSENTER_MOUNT -> "nsenter --mount=/proc/1/ns/mnt -- /system/bin/sh -c "
+                + shellQuote(script);
+            case NSENTER_TARGET -> "nsenter -t 1 -m /system/bin/sh -c " + shellQuote(script);
+        };
+    }
 
     private final Context mContext;
     private final File mAppLogBaseDir;
     private final File mLspdCopyBaseDir;
     private final File mLspdLogDir;
     private final File mLspdLogOldDir;
+
+    static String buildLspdCopyScript(String sourceDir, String targetDir) {
+        return "SOURCE=" + shellQuote(sourceDir) + "\n"
+            + "TARGET=" + shellQuote(targetDir) + "\n"
+            + "STAGE=\"${TARGET}.hc-copy-$$\"\n"
+            + "if [ ! -d \"$SOURCE\" ]; then echo HC_LSPD_SOURCE_UNAVAILABLE; exit "
+            + LSPD_SOURCE_UNAVAILABLE + "; fi\n"
+            + "rm -rf \"$STAGE\"\n"
+            + "mkdir -p \"$TARGET\" \"$STAGE\" || { rm -rf \"$STAGE\"; echo HC_LSPD_STAGE_FAILED; exit "
+            + LSPD_STAGE_FAILED + "; }\n"
+            + "found=0\n"
+            + "for file in \"$SOURCE\"/modules*.log \"$SOURCE\"/verbose*.log; do\n"
+            + "  [ -f \"$file\" ] || continue\n"
+            + "  cp -f \"$file\" \"$STAGE/\" || { rm -rf \"$STAGE\"; echo HC_LSPD_COPY_FAILED; exit "
+            + LSPD_COPY_FAILED + "; }\n"
+            + "  found=1\n"
+            + "done\n"
+            + "if [ \"$found\" -eq 0 ]; then\n"
+            + "  rm -rf \"$STAGE\"\n"
+            + "  echo HC_LSPD_EMPTY\n"
+            + "  exit " + LSPD_EMPTY + "\n"
+            + "fi\n"
+            + "chmod 644 \"$STAGE\"/* || { rm -rf \"$STAGE\"; echo HC_LSPD_CHMOD_FAILED; exit "
+            + LSPD_CHMOD_FAILED + "; }\n"
+            + "BACKUP=\"${TARGET}.hc-backup-$$\"\n"
+            + "rm -rf \"$BACKUP\"\n"
+            + "if [ -d \"$TARGET\" ]; then mv \"$TARGET\" \"$BACKUP\" || { rm -rf \"$STAGE\"; "
+            + "echo HC_LSPD_REPLACE_FAILED; exit "
+            + LSPD_REPLACE_FAILED + "; }; fi\n"
+            + "mkdir -p \"$TARGET\" || { [ -d \"$BACKUP\" ] && mv \"$BACKUP\" \"$TARGET\"; "
+            + "rm -rf \"$STAGE\"; echo HC_LSPD_REPLACE_FAILED; exit " + LSPD_REPLACE_FAILED + "; }\n"
+            + "for file in \"$STAGE\"/*; do\n"
+            + "  [ -f \"$file\" ] || continue\n"
+            + "  mv -f \"$file\" \"$TARGET/\" || { rm -rf \"$TARGET\"; "
+            + "[ -d \"$BACKUP\" ] && mv \"$BACKUP\" \"$TARGET\"; "
+            + "rm -rf \"$STAGE\"; echo HC_LSPD_REPLACE_FAILED; exit " + LSPD_REPLACE_FAILED + "; }\n"
+            + "done\n"
+            + "rm -rf \"$BACKUP\" \"$STAGE\"\n"
+            + "echo HC_LSPD_COPY_OK\n"
+            + "exit 0\n";
+    }
 
     private XposedLogLoader(Context context) {
         mContext = context.getApplicationContext();
@@ -106,11 +165,24 @@ public class XposedLogLoader {
         if (context == null) {
             return;
         }
+        LogSyncDiagnostics.context(context, LogRepository.getInstance().getDao());
         if (sSyncDeferredUntilNextLaunch) {
             AndroidLog.i(TAG, "Skip Xposed log sync until next app launch.");
+            // LSPosed keeps its old files, but new native logs can still be imported
+            // after the persisted clear cutoff without resurrecting cleared records.
+            if (LogSyncDiagnostics.checkRoot(LogRepository.getInstance().getDao())) {
+                LogcatLogLoader.sync(context, LogRepository.getInstance().getDao());
+            }
             return;
         }
-        getInstance(context).syncToDatabase();
+        try {
+            getInstance(context).syncToDatabase();
+        } catch (RuntimeException failure) {
+            LogSyncDiagnostics.record(LogRepository.getInstance().getDao(), "LogSync.LSPosed", "E",
+                "LSPOSED_SYNC_START_FAILED: " + failure.getClass().getSimpleName() + ": " + failure.getMessage());
+            if (LogSyncDiagnostics.checkRoot(LogRepository.getInstance().getDao()))
+                LogcatLogLoader.sync(context, LogRepository.getInstance().getDao());
+        }
     }
 
     public static void loadLogsSync() {
@@ -130,6 +202,7 @@ public class XposedLogLoader {
             return;
         }
         sSyncDeferredUntilNextLaunch = true;
+        LogcatLogLoader.markCleared(context);
         getInstance(context).clearLogs();
     }
 
@@ -138,14 +211,17 @@ public class XposedLogLoader {
     }
 
     private void syncToDatabase() {
-        if (ShellUtils.checkRootPermission() != 0) {
-            AndroidLog.w(TAG, "Root permission is required to sync Xposed logs.");
-            return;
+        if (!LogSyncDiagnostics.checkRoot(LogRepository.getInstance().getDao())) return;
+        try {
+            initLogDirectories();
+            if (copyLspdLogs()) persistFilteredLogsToDatabase();
+            // A failed copy must not replace the last usable LSPosed records with an empty/partial capture.
+        } catch (RuntimeException failure) {
+            LogSyncDiagnostics.record(LogRepository.getInstance().getDao(), "LogSync.LSPosed", "E",
+                "LSPOSED_IMPORT_FAILED: " + failure.getClass().getSimpleName() + ": " + failure.getMessage());
+        } finally {
+            LogcatLogLoader.sync(mContext, LogRepository.getInstance().getDao());
         }
-
-        initLogDirectories();
-        copyLspdLogs();
-        persistFilteredLogsToDatabase();
     }
 
     private void initLogDirectories() {
@@ -158,27 +234,124 @@ public class XposedLogLoader {
         );
     }
 
-    private void copyLspdLogs() {
-        copyLspdDirectory(LSPD_LOG_DIR, mLspdLogDir);
-        copyLspdDirectory(LSPD_LOG_OLD_DIR, mLspdLogOldDir);
+    private static String shellQuote(String value) {
+        return "'" + value.replace("'", "'\\''") + "'";
     }
 
-    private void copyLspdDirectory(String sourceDir, File targetDir) {
-        String checkCmd = "[ -d '" + sourceDir + "' ] && echo exists || echo missing";
-        if (!"exists".equals(ShellUtils.rootExecCmd(checkCmd).trim())) {
-            clearDirectory(targetDir);
-            return;
+    private static String commandDetail(ShellUtils.CommandResult result) {
+        StringBuilder detail = new StringBuilder();
+        if (result.successMsg != null) {
+            detail.append(result.successMsg);
+        }
+        if (result.errorMsg != null) {
+            if (detail.length() > 0) {
+                detail.append(' ');
+            }
+            detail.append(result.errorMsg);
+        }
+        String text = detail.toString().replace('\r', ' ').replace('\n', ' ').trim();
+        return text.length() <= 2048 ? text : text.substring(0, 2048);
+    }
+
+    private static String detailSuffix(String detail) {
+        return detail.isEmpty() ? "" : " detail=" + detail;
+    }
+
+    private boolean copyLspdLogs() {
+        final LspdCopyStatus current = copyLspdDirectory(LSPD_LOG_DIR, mLspdLogDir);
+        // The old log directory is optional. A missing or failed old capture must not
+        // prevent the current capture from being persisted.
+        copyLspdDirectory(LSPD_LOG_OLD_DIR, mLspdLogOldDir);
+        return current == LspdCopyStatus.COPIED || current == LspdCopyStatus.EMPTY;
+    }
+
+    private LspdCopyStatus copyLspdDirectory(String sourceDir, File targetDir) {
+        final String diagnosticTag = "LogSync.LSPosed." + (LSPD_LOG_DIR.equals(sourceDir) ? "current" : "old");
+        final LogDao dao = LogRepository.getInstance().getDao();
+        final List<String> attemptDetails = new ArrayList<>();
+        boolean sawEmptyDirectory = false;
+        boolean sawFailure = false;
+
+        for (LspdSourceAccess access : getSourceAccessOrder()) {
+            final String actualSource = access == LspdSourceAccess.PROC_ROOT
+                ? PROC_ROOT_PREFIX + sourceDir
+                : sourceDir;
+            final String command = buildLspdCopyCommand(access, actualSource, targetDir);
+            final ShellUtils.CommandResult result = ShellUtils.execRootCommand(command);
+            final String detail = commandDetail(result);
+
+            if (result.result == 0) {
+                mPreferredSourceAccess = access;
+                LogSyncDiagnostics.record(dao, diagnosticTag, "I",
+                    "LSPOSED_COPY_OK: " + sourceDir + " via=" + access.id + detailSuffix(detail));
+                return LspdCopyStatus.COPIED;
+            }
+            if (result.result == LSPD_EMPTY) {
+                sawEmptyDirectory = true;
+                continue;
+            }
+            if (result.result != LSPD_SOURCE_UNAVAILABLE) {
+                sawFailure = true;
+            }
+            attemptDetails.add(access.id + "=" + result.result + detailSuffix(detail));
         }
 
-        ensureDirs(targetDir);
-        clearDirectory(targetDir);
-        ShellUtils.rootExecCmd("cp -f '" + sourceDir + "'/* '" + targetDir.getAbsolutePath() + "/' 2>/dev/null");
-        ShellUtils.rootExecCmd("chmod -R 644 '" + targetDir.getAbsolutePath() + "'/* 2>/dev/null");
+        final String attempts = String.join(", ", attemptDetails);
+        if (sawFailure) {
+            LogSyncDiagnostics.record(dao, diagnosticTag, "E",
+                "LSPOSED_COPY_FAILED: " + sourceDir + " attempts=" + attempts);
+            return LspdCopyStatus.FAILED;
+        }
+        if (sawEmptyDirectory) {
+            clearDirectory(targetDir);
+            LogSyncDiagnostics.record(dao, diagnosticTag, "I",
+                "LSPOSED_DIRECTORY_EMPTY: " + sourceDir + " attempts=" + attempts);
+            return LspdCopyStatus.EMPTY;
+        }
+        LogSyncDiagnostics.record(dao, diagnosticTag, LSPD_LOG_DIR.equals(sourceDir) ? "W" : "I",
+            "LSPOSED_DIRECTORY_UNAVAILABLE: " + sourceDir + " attempts=" + attempts
+                + "; framework log location may differ or logging may be disabled. "
+                + "Native logcat collection runs separately.");
+        return LspdCopyStatus.UNAVAILABLE;
+    }
+
+    private List<LspdSourceAccess> getSourceAccessOrder() {
+        List<LspdSourceAccess> accesses = new ArrayList<>(LspdSourceAccess.values().length);
+        LspdSourceAccess preferred = mPreferredSourceAccess;
+        if (preferred != null) {
+            accesses.add(preferred);
+        }
+        for (LspdSourceAccess access : LspdSourceAccess.values()) {
+            if (access != preferred) {
+                accesses.add(access);
+            }
+        }
+        return accesses;
+    }
+
+    private enum LspdCopyStatus {
+        COPIED,
+        EMPTY,
+        UNAVAILABLE,
+        FAILED
+    }
+
+    private enum LspdSourceAccess {
+        DIRECT("direct"),
+        PROC_ROOT("proc_root"),
+        NSENTER_MOUNT("nsenter_mount"),
+        NSENTER_TARGET("nsenter_target");
+
+        private final String id;
+
+        LspdSourceAccess(String id) {
+            this.id = id;
+        }
     }
 
     private void persistFilteredLogsToDatabase() {
         LogDao dao = LogRepository.getInstance().getDao();
-        dao.deleteByModule(FILTERED_MODULE);
+        dao.deleteSyncedXposedLogs(FILTERED_MODULE);
 
         List<LogEntry> batch = new ArrayList<>(INSERT_BATCH_SIZE);
         importDirectoryToDatabase(mLspdLogOldDir, LogEntry.SOURCE_GROUP_OLD, dao, batch);
@@ -200,9 +373,13 @@ public class XposedLogLoader {
             return;
         }
 
+        boolean hasModules = Arrays.stream(files).anyMatch(file -> file.getName().startsWith(MODULES_LOG_PREFIX));
         for (File file : files) {
             try {
-                importSourceFile(file, sourceGroup, dao, batch);
+                // Verbose repeats module records, but also owns pre-module load failures.
+                // Always scan those failures even when modules_ logs are available.
+                boolean frameworkOnly = hasModules && file.getName().startsWith(VERBOSE_LOG_PREFIX);
+                importSourceFile(file, sourceGroup, dao, batch, frameworkOnly);
             } catch (IOException e) {
                 AndroidLog.e(TAG, "Failed to import filtered log: " + file.getName(), e);
             }
@@ -211,20 +388,16 @@ public class XposedLogLoader {
 
     private File[] getSourceLogFiles(File directory) {
         File[] files = directory.listFiles((dir, name) ->
-            name.startsWith(MODULES_LOG_PREFIX) && name.endsWith(".log")
+            (name.startsWith(MODULES_LOG_PREFIX) || name.startsWith(VERBOSE_LOG_PREFIX)) && name.endsWith(".log")
         );
-        if (files == null || files.length == 0) {
-            files = directory.listFiles((dir, name) ->
-                name.startsWith(VERBOSE_LOG_PREFIX) && name.endsWith(".log")
-            );
-        }
         if (files != null) {
             Arrays.sort(files, Comparator.comparing(File::getName));
         }
         return files;
     }
 
-    private void importSourceFile(File file, String sourceGroup, LogDao dao, List<LogEntry> batch) throws IOException {
+    private void importSourceFile(File file, String sourceGroup, LogDao dao, List<LogEntry> batch,
+                                  boolean frameworkOnly) throws IOException {
         try (BufferedReader reader = new BufferedReader(new FileReader(file), 16384)) {
             String line;
             StringBuilder currentEntry = new StringBuilder();
@@ -235,7 +408,7 @@ public class XposedLogLoader {
                     if (isTarget && !currentEntry.isEmpty()) {
                         addFilteredEntry(dao, batch, currentEntry.toString(), sourceGroup);
                     }
-                    isTarget = line.contains(HYPERCEILER_TAG);
+                    isTarget = (!frameworkOnly && line.contains(HYPERCEILER_TAG)) || LspdLoadFailure.matches(line);
                     currentEntry = new StringBuilder(line);
                 } else if (!currentEntry.isEmpty()
                     && currentEntry.length() + line.length() + 1 <= MAX_ENTRY_MESSAGE_LENGTH) {
@@ -288,6 +461,11 @@ public class XposedLogLoader {
         String processIds = extractProcessIds(line);
         String tag = extractPackageName(message);
 
+        if (LspdLoadFailure.matches(line)) {
+            tag = "LSPosed.ModuleLoad";
+            message = LspdLoadFailure.explain(message);
+        }
+
         if (message.contains("[CrashMonitor]")) {
             level = "C";
         }
@@ -335,7 +513,7 @@ public class XposedLogLoader {
         Matcher prefixMatcher = LINE_PREFIX_LEVEL_PATTERN.matcher(line);
         if (prefixMatcher.find()) {
             String level = prefixMatcher.group(4);
-            if (level != null && !level.isEmpty() && isNewFormat(line)) {
+            if (level != null && !level.isEmpty()) {
                 return level;
             }
         }
@@ -371,10 +549,6 @@ public class XposedLogLoader {
             return "";
         }
         return uid + ":" + pid + ":" + tid;
-    }
-
-    private boolean isNewFormat(String line) {
-        return NEW_MODULE_PATTERN.matcher(line).find();
     }
 
     private String extractMessage(String line) {

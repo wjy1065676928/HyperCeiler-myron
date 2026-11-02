@@ -4,6 +4,7 @@
  */
 
 #include <android/log.h>
+#include "home_process_identity.h"
 #include <dlfcn.h>
 #include <jni.h>
 #include <sys/system_properties.h>
@@ -25,14 +26,20 @@
 void resolve_home_layout_targets();
 void start_home_layout_hooks(const char *site, int (*hook)(void *, void *, void **),
     int (*unhook)(void *));
+void prime_home_layout_engine();
 void prime_home_layout_probe(int (*hook)(void *, void *, void **), int (*unhook)(void *));
 void home_layout_prepare_for_launcher_child();
 void prime_home_layout_knobs(int (*hook)(void *, void *, void **), int (*unhook)(void *));
+void prime_home_layout_first_render(int (*hook)(void *, void *, void **),int (*unhook)(void *));
+void home_layout_set_desktop_title_size(int sp);
+void home_layout_set_drawer_title_size(int sp);
+void home_layout_set_title_color(int argb);
 // Launcher tweaks runtime (symbol-table / signature located code patches, see targets/home/tweaks).
-namespace hometweaks {
-void StartHomeTweaks();
-void HomeTweaksOnLibraryLoaded(const char *name);
-void HomeTweaksPrepareForLauncherChild();
+namespace home_layout_engine {
+void StartHomeLayoutEngine();
+void HomeLayoutEngineOnLibraryLoaded(const char *name);
+bool HomeLayoutEnginePrimeCachedSymbols();
+void HomeLayoutEnginePrepareForLauncherChild();
 }
 
 #include "home_title_targets.h"
@@ -64,6 +71,7 @@ std::atomic_bool g_high_device_level = false;
 std::atomic_bool g_disable_prestart = false;
 std::atomic_bool g_soft_glass = false;
 std::atomic_bool g_configured = false;
+home_layout::LauncherProcessIdentity g_launcher_identity;
 // 0=not specialized yet, 1=launcher, 2=another app. The spawner's zero state is
 // inherited independently by every child.
 #ifndef HYPERCEILER_HYOS_BACKEND
@@ -78,12 +86,17 @@ SetProcessName g_original_setprogname = nullptr;
 #endif
 
 bool is_launcher_process() {
-    char name[128]{};
-    FILE *file = std::fopen("/proc/self/cmdline", "r");
-    if (file == nullptr) return false;
-    const size_t size = std::fread(name, 1, sizeof(name) - 1, file);
-    std::fclose(file);
-    return size > 0 && std::string_view(name) == "com.miui.home";
+#ifndef HYPERCEILER_HYOS_BACKEND
+    const bool cache_safe=g_process_name_hook_installed.load(std::memory_order_acquire);
+#else
+    constexpr bool cache_safe=false;
+#endif
+    return g_launcher_identity.matches(uint32_t(getpid()),cache_safe,[](char* name,size_t capacity){
+        FILE* file=std::fopen("/proc/self/cmdline","r");
+        if(!file)return size_t{0};
+        const auto size=std::fread(name,1,capacity-1,file);
+        std::fclose(file);return size;
+    });
 }
 
 #ifndef HYPERCEILER_HYOS_BACKEND
@@ -153,11 +166,12 @@ int hooked_system_property_get(const char *name, char *value) {
     start_motion_after_specialization();
     if (g_hook_function != nullptr && is_launcher_process()) {
         home_layout_prepare_for_launcher_child();
+        prime_home_layout_first_render(g_hook_function,g_unhook_function);
         start_home_layout_hooks("property", g_hook_function, g_unhook_function);
         // The specialization signal means this is the forked desktop itself, not the spawner that
         // merely shares its cmdline: state inherited across the fork is poison, drop it first.
-        hometweaks::HomeTweaksPrepareForLauncherChild();
-        hometweaks::StartHomeTweaks();
+        home_layout_engine::HomeLayoutEnginePrepareForLauncherChild();
+        home_layout_engine::StartHomeLayoutEngine();
     }
 #endif
     // A stalled Binder poll must not keep an old affirmative preference alive.
@@ -166,8 +180,7 @@ int hooked_system_property_get(const char *name, char *value) {
     const bool managed = hyos_control::active();
     const bool high_models = managed ? hyos_control::feature_enabled(hyos_control::kHighModels)
                                     : g_high_device_level.load(std::memory_order_relaxed);
-    const bool disable_prestart = managed ? hyos_control::feature_enabled(hyos_control::kDisablePrestart)
-                                         : g_disable_prestart.load(std::memory_order_relaxed);
+    const bool disable_prestart = hyperceiler_home_prestart_disabled();
     const bool soft_glass = managed ? hyos_control::feature_enabled(hyos_control::kSoftGlass)
                                    : g_soft_glass.load(std::memory_order_relaxed);
 #else
@@ -204,14 +217,16 @@ int hooked_system_property_get(const char *name, char *value) {
 
 #ifndef HYPERCEILER_HYOS_BACKEND
 void hooked_setprogname(const char *name) {
+    g_launcher_identity.invalidate();
     if (g_original_setprogname != nullptr) g_original_setprogname(name);
+    g_launcher_identity.invalidate();
     if (name != nullptr && std::string_view(name) == "com.miui.home") {
         home_layout_prepare_for_launcher_child();
         start_home_layout_hooks("setprogname", g_hook_function, g_unhook_function);
         if (!is_hyos_spawner_process()) {
             // See the property-hook site: same signal, same fork poisoning, same fix.
-            hometweaks::HomeTweaksPrepareForLauncherChild();
-            hometweaks::StartHomeTweaks();
+            home_layout_engine::HomeLayoutEnginePrepareForLauncherChild();
+            home_layout_engine::StartHomeLayoutEngine();
         }
     }
 #ifdef HYPERCEILER_DOCK_NATIVE_MOTION
@@ -284,10 +299,16 @@ void on_library_loaded(const char *name, void *) {
     // site is available and nothing has read the old constants yet. Scoped to the Dart image, since
     // every other library loaded here would otherwise cost a Binder round trip each.
     if (std::string_view(name).ends_with("libapp.so")) {
+        if (launcher) {
+            prime_home_layout_first_render(g_hook_function,g_unhook_function);
+            home_layout_engine::HomeLayoutEnginePrepareForLauncherChild();
+            prime_home_layout_engine();
+            (void)home_layout_engine::HomeLayoutEnginePrimeCachedSymbols();
+        }
         // Patch before the dart runtime runs: the probe target is called exactly once, at start-up.
         prime_home_layout_probe(g_hook_function, g_unhook_function);
         prime_home_layout_knobs(g_hook_function, g_unhook_function);
-        hometweaks::HomeTweaksOnLibraryLoaded(name);
+        home_layout_engine::HomeLayoutEngineOnLibraryLoaded(name);
         // Drawer title blanking needs the image mapped and nothing else; it shares this callback
         // rather than adding a second library-load probe. A no-op until the layout snapshot turns
         // the switch on, so wiring it here costs a single atomic load when the feature is off.
@@ -302,8 +323,8 @@ void on_library_loaded(const char *name, void *) {
         start_home_layout_hooks("library", g_hook_function, g_unhook_function);
     }
     if (launcher) {
-        hometweaks::HomeTweaksPrepareForLauncherChild();
-        hometweaks::StartHomeTweaks();
+        home_layout_engine::HomeLayoutEnginePrepareForLauncherChild();
+        home_layout_engine::StartHomeLayoutEngine();
     }
 #ifdef HYPERCEILER_DOCK_NATIVE_MOTION
     // HYOS can map libapp.so outside the normal linker callback path. Any later
@@ -334,6 +355,15 @@ jint native_status() {
 }
 
 }  // namespace
+
+bool hyperceiler_home_prestart_disabled() {
+#ifdef HYPERCEILER_HYOS_BACKEND
+    // Do not let a bootstrap JNI value revive an expired/disabled authorization.
+    return hyos_control::feature_enabled(hyos_control::kDisablePrestart);
+#else
+    return g_disable_prestart.load(std::memory_order_relaxed);
+#endif
+}
 
 void hyperceiler_home_runtime_options(bool high_models, bool disable_prestart,
                                      bool soft_glass, bool dock_enabled, bool hide_report) {
@@ -379,8 +409,8 @@ Java_com_sevtinge_hyperceiler_libhook_rules_home_other_NativeHomeHooksOS4_native
     if (is_launcher_process() && g_hook_function != nullptr) {
         home_layout_prepare_for_launcher_child();
         start_home_layout_hooks("configure", g_hook_function, g_unhook_function);
-        hometweaks::HomeTweaksPrepareForLauncherChild();
-        hometweaks::StartHomeTweaks();
+        home_layout_engine::HomeLayoutEnginePrepareForLauncherChild();
+        home_layout_engine::StartHomeLayoutEngine();
     }
 #endif
     return native_status();
@@ -401,6 +431,42 @@ Java_com_sevtinge_hyperceiler_libhook_rules_home_other_NativeHomeHooksOS4_native
 #ifdef HYPERCEILER_DOCK_NATIVE_MOTION
     set_dock_motion_feature_enabled(enabled == JNI_TRUE);
 #endif
+    return native_status();
+}
+
+extern "C" JNIEXPORT jint JNICALL
+Java_com_sevtinge_hyperceiler_libhook_rules_home_other_NativeHomeHooksOS4_nativeSetDesktopTitleSize(
+    JNIEnv *, jobject, jint sp) {
+    if (is_launcher_process() && sp >= 0 && sp <= 20) {
+        home_layout_set_desktop_title_size(sp);
+        if (g_hook_function != nullptr) {
+            start_home_layout_hooks("title-size", g_hook_function, g_unhook_function);
+        }
+    }
+    return native_status();
+}
+
+extern "C" JNIEXPORT jint JNICALL
+Java_com_sevtinge_hyperceiler_libhook_rules_home_other_NativeHomeHooksOS4_nativeSetDrawerTitleSize(
+    JNIEnv *, jobject, jint sp) {
+    if (is_launcher_process() && sp >= 0 && sp <= 20) {
+        home_layout_set_drawer_title_size(sp);
+        if (g_hook_function != nullptr) {
+            start_home_layout_hooks("drawer-title-size", g_hook_function, g_unhook_function);
+        }
+    }
+    return native_status();
+}
+
+extern "C" JNIEXPORT jint JNICALL
+Java_com_sevtinge_hyperceiler_libhook_rules_home_other_NativeHomeHooksOS4_nativeSetTitleColor(
+    JNIEnv *, jobject, jint argb) {
+    if (is_launcher_process()) {
+        home_layout_set_title_color(argb);
+        if (argb != -1 && g_hook_function != nullptr) {
+            start_home_layout_hooks("title-color", g_hook_function, g_unhook_function);
+        }
+    }
     return native_status();
 }
 
@@ -425,8 +491,8 @@ NativeOnModuleLoaded native_init(const NativeApiEntries *entries) {
         start_home_layout_hooks("native-init", g_hook_function, g_unhook_function);
     }
     if (is_launcher_process()) {
-        hometweaks::HomeTweaksPrepareForLauncherChild();
-        hometweaks::StartHomeTweaks();
+        home_layout_engine::HomeLayoutEnginePrepareForLauncherChild();
+        home_layout_engine::StartHomeLayoutEngine();
     }
     // Drawer title blanking is driven by the layout snapshot the endpoint in system_server answers
     // (see home_title_targets.h / ApplySwitch): it starts only once that snapshot says the user
