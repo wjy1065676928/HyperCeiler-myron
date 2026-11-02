@@ -156,7 +156,7 @@
             android:title="@string/about_github">
             <intent
                 android:action="android.intent.action.VIEW"
-                android:data="https://github.com/ReChronoRain/HyperCeiler" />
+                android:data="https://github.com/wjy1065676928/HyperCeiler-myron" />
         </Preference>
 
         <com.sevtinge.hyperceiler.prefs.XmlPreference
